@@ -6,30 +6,6 @@
           <form @submit.prevent="submitForm" class="fuzzer-form">
             
             <div class="form-group">
-              <label for="name">Nombre de la Prueba</label>
-              <input 
-                id="name" 
-                v-model="formData.name" 
-                type="text" 
-                required 
-                placeholder="Ej. API de Pagos - Prod"
-                class="glass-input"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="version">Versión del API</label>
-              <input 
-                id="version" 
-                v-model="formData.version" 
-                type="text" 
-                required 
-                placeholder="Ej. v1.2.0"
-                class="glass-input"
-              />
-            </div>
-
-            <div class="form-group">
               <label for="contract">Contrato OpenAPI (YAML / JSON)</label>
               <div class="file-upload-wrapper" :class="{ 'has-file': formData.file }">
                 <input 
@@ -80,8 +56,6 @@ const fuzzerStore = useFuzzerStore()
 const router = useRouter()
 
 const formData = ref({
-  name: '',
-  version: '',
   file: null
 })
 
@@ -102,8 +76,6 @@ const submitForm = async () => {
   
   try {
     const result = await fuzzerStore.createFuzzer({
-      name: formData.value.name,
-      version: formData.value.version,
       file: formData.value.file
     })
     
@@ -111,8 +83,6 @@ const submitForm = async () => {
     submitMessage.value = `¡Prueba iniciada con éxito! Fuzzer ID: ${result.id}`
     
     // Reset form
-    formData.value.name = ''
-    formData.value.version = ''
     formData.value.file = null
     document.getElementById('contract').value = ''
     

@@ -32,7 +32,7 @@ export const useSocketStore = defineStore('socket', {
 
       // Conectamos directamente al backend (NestJS puerto 3000)
       // para evitar problemas con el proxy de Vite y el HMR WebSocket
-      this.socket = io('http://localhost:3000', {
+      this.socket = io('http://localhost:3002', {
         transports: ['websocket', 'polling']
       })
 
@@ -47,7 +47,7 @@ export const useSocketStore = defineStore('socket', {
       })
 
       // Escuchando el canal fuzzer.running (según JDozerFuzzerGateway Channels.EVENT_RUNNING)
-      this.socket.on('fuzzer.running', (rawData) => {
+      this.socket.on('jdozer:fuzzer', (rawData) => {
         try {
           const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
           const entityType = data?.headers?.entityType;
@@ -67,7 +67,7 @@ export const useSocketStore = defineStore('socket', {
 
           // Procesar métricas específicas
           switch (routeKey) {
-            case 'fuzzer-engine:total-cases':
+            case 'counts:total-cases':
               this.handleTotalCases(data.payload);
               break;
             case 'fuzzer-engine:engine-started':
@@ -98,11 +98,11 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleTotalCases(payload) {
-      if (payload && payload.cases && payload.cases.total !== undefined) {
-        this.metrics.totalCasesCreated = payload.cases.total;
+      if (payload && payload.total !== undefined && payload.perOperations !== undefined) {
+        this.metrics.totalCasesCreated = payload.total;
 
-        if (payload.cases.operations) {
-          for (const [op, props] of Object.entries(payload.cases.operations)) {
+        if (payload.perOperations) {
+          for (const [op, props] of Object.entries(payload.perOperations)) {
             let opTotal = 0;
             for (const val of Object.values(props)) {
               opTotal += val;

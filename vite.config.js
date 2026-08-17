@@ -17,12 +17,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/bff': {
+      '/jdozerfuzzer': {
         target: 'http://localhost:3000',
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3002',
         ws: true,
         changeOrigin: true
       }
