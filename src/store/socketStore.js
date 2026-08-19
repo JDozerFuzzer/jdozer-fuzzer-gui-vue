@@ -70,13 +70,13 @@ export const useSocketStore = defineStore('socket', {
             case 'counts:total-cases':
               this.handleTotalCases(data.payload);
               break;
-            case 'fuzzer-engine:engine-started':
+            case 'fuzzer-engine:config':
               this.handleEngineStarted(data.payload);
               break;
-            case 'fuzzer-processor:status-code':
+            case 'status-code:validation':
               this.handleStatusCode(data.payload);
               break;
-            case 'fuzzer-processor:req-res-merged':
+            case 'fuzzing-case:validation':
               this.handleReqResMerged(data.payload);
               break;
             case 'fuzzer-processor:false-positive':
@@ -123,8 +123,8 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleStatusCode(payload) {
-      const operationId = payload?.scenarioName;
-      const statusCode = payload?.statusCode;
+      const operationId = payload?.operationid;
+      const statusCode = payload?.responseStatusCode;
 
       if (!operationId || statusCode === undefined) return;
 
@@ -147,9 +147,9 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleReqResMerged(payload) {
-      if (!payload || payload.isValid === undefined || payload.statusCode === undefined) return;
+      if (!payload || payload.isValidRequest === undefined || payload.statusCode === undefined) return;
 
-      const isValid = payload.isValid;
+      const isValid = payload.isValidRequest;
       const code = Number(payload.statusCode);
       const isSuccess = code >= 200 && code < 300;
 

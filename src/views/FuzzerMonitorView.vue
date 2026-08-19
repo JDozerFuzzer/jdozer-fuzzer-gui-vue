@@ -37,10 +37,10 @@
             </div>
             <div v-else class="engine-config-list">
               <div class="config-section">
-                <span class="config-title">Fases ({{ socketStore.metrics.engineConfig.phases.length }})</span>
+                <span class="config-title">Fases ({{ Object.keys(socketStore.metrics.engineConfig.phases).length }})</span>
                 <div class="config-items">
                   <div class="config-item" v-for="(phase, idx) in socketStore.metrics.engineConfig.phases" :key="'phase-'+idx">
-                    <span class="config-name">{{ phase.name || `Phase ${idx+1}` }}</span>
+                    <span class="config-name">{{ idx || `Phase ${idx+1}` }}</span>
                     <span class="config-badge">{{ phase.duration }}s</span>
                   </div>
                 </div>
@@ -50,7 +50,7 @@
                 <div class="config-items">
                   <div class="config-item" v-for="(val, scenario) in socketStore.metrics.engineConfig.scenarios" :key="'scen-'+scenario">
                     <span class="config-name">{{ scenario }}</span>
-                    <span class="config-badge">{{ val.weight || val }}</span>
+                    <span class="config-badge">{{ val.weight }}</span>
                   </div>
                 </div>
               </div>
