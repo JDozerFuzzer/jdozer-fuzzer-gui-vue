@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
 import { useSocketStore } from '../../store/socketStore'
@@ -34,14 +34,6 @@ const socketStore = useSocketStore()
 const currentRouteName = computed(() => {
   if (route.name === 'dashboard') return 'Dashboard'
   return route.name
-})
-
-onMounted(() => {
-  socketStore.connect()
-})
-
-onUnmounted(() => {
-  socketStore.disconnect()
 })
 </script>
 

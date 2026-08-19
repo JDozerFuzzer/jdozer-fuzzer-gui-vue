@@ -51,8 +51,10 @@ import { UploadCloud, Play } from 'lucide-vue-next'
 import AppLayout from '../components/layout/AppLayout.vue'
 import GlassCard from '../components/ui/GlassCard.vue'
 import { useFuzzerStore } from '../store/fuzzerStore'
+import { useSocketStore } from '../store/socketStore'
 
 const fuzzerStore = useFuzzerStore()
+const socketStore = useSocketStore()
 const router = useRouter()
 
 const formData = ref({
@@ -75,6 +77,7 @@ const submitForm = async () => {
   submitMessage.value = ''
   
   try {
+    socketStore.clearMetrics()
     const result = await fuzzerStore.createFuzzer({
       file: formData.value.file
     })

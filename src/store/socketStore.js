@@ -70,6 +70,7 @@ export const useSocketStore = defineStore('socket', {
             case 'counts:total-cases':
               this.handleTotalCases(data.payload);
               break;
+            case 'fuzzer-engine:engine-started':
             case 'fuzzer-engine:config':
               this.handleEngineStarted(data.payload);
               break;
@@ -98,18 +99,25 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleTotalCases(payload) {
-      if (payload && payload.total !== undefined && payload.perOperations !== undefined) {
+      if (payload && payload.total !== undefined) {
         this.metrics.totalCasesCreated = payload.total;
 
-        if (payload.perOperations) {
-          for (const [op, props] of Object.entries(payload.perOperations)) {
+        const perOps = payload.perOperations || payload;
+        const casesByOp = {};
+
+        for (const [op, props] of Object.entries(perOps)) {
+          if (op === 'total') continue;
+          if (typeof props === 'object' && props !== null) {
             let opTotal = 0;
             for (const val of Object.values(props)) {
-              opTotal += val;
+              opTotal += Number(val) || 0;
             }
-            this.metrics.casesByOperation[op] = opTotal;
+            casesByOp[op] = opTotal;
+          } else if (typeof props === 'number') {
+            casesByOp[op] = props;
           }
         }
+        this.metrics.casesByOperation = casesByOp;
       }
     },
 
