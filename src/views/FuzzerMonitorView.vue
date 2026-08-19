@@ -83,12 +83,14 @@
               >
                 <span class="log-time">[{{ event.time }}]</span>
                 <span class="log-type">{{ event.type }}</span>
+                <!--
                 <span v-if="event.type === 'fuzzer-processor:status-code'" class="log-detail">
                   Op: {{ event.payload.scenarioName }} | Code: {{ event.payload.statusCode }}
                 </span>
                 <span v-else-if="event.payload?.fuzzerId" class="log-detail">
                   Fuzzer: {{ event.payload.fuzzerId.substring(0,8) }}...
                 </span>
+                -->
               </div>
             </div>
           </GlassCard>
@@ -136,23 +138,23 @@
             <div class="fp-levels">
               <div class="fp-level-card high">
                 <span class="fp-level-icon">🔴</span>
-                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[3] }}</span>
-                <span class="fp-level-label">HIGH (2xx)</span>
+                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[4] }}</span>
+                <span class="fp-level-label">HIGH</span>
               </div>
               <div class="fp-level-card medium">
                 <span class="fp-level-icon">🟠</span>
-                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[2] }}</span>
-                <span class="fp-level-label">MEDIUM (5xx)</span>
+                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[3] }}</span>
+                <span class="fp-level-label">MEDIUM</span>
               </div>
               <div class="fp-level-card low">
                 <span class="fp-level-icon">🟡</span>
-                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[1] }}</span>
-                <span class="fp-level-label">LOW (4xx)</span>
+                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[2] }}</span>
+                <span class="fp-level-label">LOW</span>
               </div>
               <div class="fp-level-card other">
                 <span class="fp-level-icon">⚪</span>
-                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[0] }}</span>
-                <span class="fp-level-label">OTHER</span>
+                <span class="fp-level-count">{{ socketStore.metrics.falsePositives.byLevel[1] }}</span>
+                <span class="fp-level-label">SUCCESS</span>
               </div>
             </div>
 
@@ -203,7 +205,7 @@ use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridC
 const socketStore = useSocketStore()
 
 const riskLabel = (level) => {
-  const labels = { 0: 'OTHER', 1: 'LOW', 2: 'MEDIUM', 3: 'HIGH' };
+  const labels = { 1: 'SUCCESS', 2: 'LOW', 3: 'MEDIUM', 4: 'HIGH' };
   return labels[level] || 'N/A';
 }
 
@@ -237,8 +239,8 @@ const chartOption = computed(() => {
     // Definir color según el tipo de status
     let color = '#60a5fa'; // Blue (Info/Other)
     if (code.startsWith('2')) color = '#4ade80'; // Green (Success)
-    if (code.startsWith('4')) color = '#fbbf24'; // Yellow (Client Error)
-    if (code.startsWith('5')) color = '#f87171'; // Red (Server Error)
+    if (code.startsWith('3')) color = '#fbbf24'; // Yellow (Client Error)
+    if (code.startsWith('4')) color = '#f87171'; // Red (Server Error)
 
     return {
       name: `HTTP ${code}`,
@@ -340,10 +342,10 @@ const fpChartOption = computed(() => {
   });
 
   const levels = [
-    { key: 3, name: 'HIGH', color: '#f87171' },
-    { key: 2, name: 'MEDIUM', color: '#fb923c' },
-    { key: 1, name: 'LOW', color: '#fbbf24' },
-    { key: 0, name: 'OTHER', color: '#94a3b8' }
+    { key: 4, name: 'HIGH', color: '#f87171' },
+    { key: 3, name: 'MEDIUM', color: '#fb923c' },
+    { key: 2, name: 'LOW', color: '#fbbf24' },
+    { key: 1, name: 'SUCCESS', color: '#94a3b8' }
   ];
 
   const series = levels.map(l => ({
@@ -809,10 +811,10 @@ const fpChartOption = computed(() => {
   text-align: center;
 }
 
-.fp-badge.level-3 { background: rgba(248,113,113,0.2); color: #f87171; }
-.fp-badge.level-2 { background: rgba(251,146,60,0.2); color: #fb923c; }
-.fp-badge.level-1 { background: rgba(251,191,36,0.2); color: #fbbf24; }
-.fp-badge.level-0 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+.fp-badge.level-4 { background: rgba(248,113,113,0.2); color: #f87171; }
+.fp-badge.level-3 { background: rgba(251,146,60,0.2); color: #fb923c; }
+.fp-badge.level-2 { background: rgba(251,191,36,0.2); color: #fbbf24; }
+.fp-badge.level-1 { background: rgba(148,163,184,0.2); color: #94a3b8; }
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {

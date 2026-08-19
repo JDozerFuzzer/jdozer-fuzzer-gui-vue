@@ -19,8 +19,8 @@ export const useSocketStore = defineStore('socket', {
         invalidAccepted: 0  // isValid=false + 2xx → Vulnerabilidad
       },
       falsePositives: {
-        byLevel: { 0: 0, 1: 0, 2: 0, 3: 0 }, // 0:Other, 1:LOW, 2:MEDIUM, 3:HIGH
-        byOperation: {},  // { 'addPet': { 0:0, 1:2, 2:1, 3:5 } }
+        byLevel: { 1: 0, 2: 0, 3: 0, 4: 0 }, // 1:LOW, 2:MEDIUM, 3:HIGH, 4:CRITICAL, 5:INFO
+        byOperation: {},  // { 'addPet': { 1:2, 2:1, 3:5 } }
         recent: []         // Últimos 20 eventos con detalle
       }
     }
@@ -80,7 +80,7 @@ export const useSocketStore = defineStore('socket', {
             case 'fuzzing-case:validation':
               this.handleReqResMerged(data.payload);
               break;
-            case 'fuzzer-processor:false-positive':
+            case 'schema-request:payload':
               this.handleFalsePositive(data.payload);
               break;
           }
@@ -177,9 +177,9 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleFalsePositive(payload) {
-      if (!payload || payload.riskLevel === undefined) return;
+      if (!payload || payload.severity === undefined) return;
 
-      const level = payload.riskLevel;
+      const level = payload.severity;
       const operationId = payload.operationId || 'unknown';
 
       const byLevel = { ...this.metrics.falsePositives.byLevel };
@@ -187,7 +187,7 @@ export const useSocketStore = defineStore('socket', {
 
       const byOperation = JSON.parse(JSON.stringify(this.metrics.falsePositives.byOperation));
       if (!byOperation[operationId]) {
-        byOperation[operationId] = { 0: 0, 1: 0, 2: 0, 3: 0 };
+        byOperation[operationId] = { 1: 0, 2: 0, 3: 0, 4: 0 };
       }
       byOperation[operationId][level] = (byOperation[operationId][level] || 0) + 1;
 
@@ -195,8 +195,8 @@ export const useSocketStore = defineStore('socket', {
         time: new Date().toLocaleTimeString(),
         operationId,
         riskLevel: level,
-        context: payload.context,
-        details: payload.details,
+        context: payload.type,
+        details: `${payload.operationId}`,
         statusCode: payload.statusCode
       }, ...this.metrics.falsePositives.recent].slice(0, 20);
 
@@ -218,7 +218,7 @@ export const useSocketStore = defineStore('socket', {
           invalidAccepted: 0
         },
         falsePositives: {
-          byLevel: { 0: 0, 1: 0, 2: 0, 3: 0 },
+          byLevel: { 1: 0, 2: 0, 3: 0, 4: 0 },
           byOperation: {},
           recent: []
         }
