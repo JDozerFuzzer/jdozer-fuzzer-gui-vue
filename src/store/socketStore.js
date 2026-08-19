@@ -73,7 +73,7 @@ export const useSocketStore = defineStore('socket', {
             case 'fuzzer-engine:config':
               this.handleEngineStarted(data.payload);
               break;
-            case 'status-code:validation':
+            case 'schema-response:status-code':
               this.handleStatusCode(data.payload);
               break;
             case 'fuzzing-case:validation':
@@ -123,8 +123,8 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleStatusCode(payload) {
-      const operationId = payload?.operationid;
-      const statusCode = payload?.responseStatusCode;
+      const operationId = payload?.operationId;
+      const statusCode = payload?.statusCode;
 
       if (!operationId || statusCode === undefined) return;
 
@@ -174,18 +174,15 @@ export const useSocketStore = defineStore('socket', {
       const level = payload.riskLevel;
       const operationId = payload.operationId || 'unknown';
 
-      // Actualizar conteo por nivel
       const byLevel = { ...this.metrics.falsePositives.byLevel };
       byLevel[level] = (byLevel[level] || 0) + 1;
 
-      // Actualizar conteo por operación
       const byOperation = JSON.parse(JSON.stringify(this.metrics.falsePositives.byOperation));
       if (!byOperation[operationId]) {
         byOperation[operationId] = { 0: 0, 1: 0, 2: 0, 3: 0 };
       }
       byOperation[operationId][level] = (byOperation[operationId][level] || 0) + 1;
 
-      // Agregar a recientes (máximo 20)
       const recent = [{
         time: new Date().toLocaleTimeString(),
         operationId,
