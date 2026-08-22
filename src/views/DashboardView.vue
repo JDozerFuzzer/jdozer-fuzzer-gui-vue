@@ -1061,9 +1061,13 @@ const chartOption = computed(() => ({
   color: var(--accent-primary);
   border: 1px solid rgba(74, 222, 128, 0.2);
   padding: 3px 8px;
+  margin-top: 10px;
   border-radius: 12px;
   font-size: 11px;
   font-family: monospace;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
 }
 
 .badge-version {
