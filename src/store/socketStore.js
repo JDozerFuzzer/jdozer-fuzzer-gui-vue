@@ -12,6 +12,7 @@ export const useSocketStore = defineStore('socket', {
       engineConfig: null, // Guardará la config del ataque (phases, scenarios)
       totalResponses: 0,
       statusCodesByOperation: {}, // format: { 'addPet': { 200: 5, 400: 2, 500: 1 } }
+      schemaResponsesByOperation: {}, // format: { 'createUser': { total: 10, byMatchType: {...}, bySeverityName: {...}, byStatusCode: {...} } }
       validityMatrix: {
         validSuccess: 0,    // isValid=true  + 2xx → Esperado
         validError: 0,      // isValid=true  + 4xx/5xx → Bug potencial
@@ -30,8 +31,6 @@ export const useSocketStore = defineStore('socket', {
     connect() {
       if (this.socket && this.socket.connected) return
 
-      // Conectamos directamente al backend (NestJS puerto 3000)
-      // para evitar problemas con el proxy de Vite y el HMR WebSocket
       this.socket = io('http://localhost:3002', {
         transports: ['websocket', 'polling']
       })
@@ -46,7 +45,6 @@ export const useSocketStore = defineStore('socket', {
         console.log('Socket desconectado')
       })
 
-      // Escuchando el canal fuzzer.running (según JDozerFuzzerGateway Channels.EVENT_RUNNING)
       this.socket.on('jdozer:fuzzer', (rawData) => {
         try {
           const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
@@ -57,7 +55,6 @@ export const useSocketStore = defineStore('socket', {
 
           const routeKey = `${entityType}:${eventType}`;
 
-          // Guardar en el log (manteniendo los últimos 50 eventos)
           this.eventsLog.unshift({
             time: new Date().toLocaleTimeString(),
             type: routeKey,
@@ -135,10 +132,7 @@ export const useSocketStore = defineStore('socket', {
       const statusCode = payload?.statusCode;
 
       if (!operationId || statusCode === undefined) return;
-
       this.metrics.totalResponses++;
-
-      // Clonar para forzar reactividad en Pinia (nueva referencia)
       const updated = JSON.parse(JSON.stringify(this.metrics.statusCodesByOperation));
 
       if (!updated[operationId]) {
@@ -150,8 +144,54 @@ export const useSocketStore = defineStore('socket', {
       }
 
       updated[operationId][statusCode]++;
-
       this.metrics.statusCodesByOperation = updated;
+
+      // Actualizar contadores de OpenAPI Schema Response por Operación
+      const matchType = payload.matchType || 'none';
+      const matched = payload.matched !== undefined ? String(payload.matched) : '-';
+      const severity = payload.severity !== undefined ? payload.severity : 1;
+      const severityName = payload.severityName || (
+        severity <= 2 ? 'info' : severity === 3 ? 'low' : severity === 4 ? 'medium' : 'high'
+      );
+
+      const updatedSchema = JSON.parse(JSON.stringify(this.metrics.schemaResponsesByOperation || {}));
+      
+      if (!updatedSchema[operationId]) {
+        updatedSchema[operationId] = {
+          total: 0,
+          byMatchType: { exact: 0, wildcard: 0, default: 0, '5xx': 0, none: 0 },
+          bySeverityName: { info: 0, low: 0, medium: 0, high: 0 },
+          byStatusCode: {}
+        };
+      }
+
+      const opData = updatedSchema[operationId];
+      opData.total++;
+
+      if (opData.byMatchType[matchType] !== undefined) {
+        opData.byMatchType[matchType]++;
+      } else {
+        opData.byMatchType[matchType] = 1;
+      }
+
+      if (opData.bySeverityName[severityName] !== undefined) {
+        opData.bySeverityName[severityName]++;
+      } else {
+        opData.bySeverityName[severityName] = 1;
+      }
+
+      if (!opData.byStatusCode[statusCode]) {
+        opData.byStatusCode[statusCode] = {
+          count: 0,
+          matched,
+          matchType,
+          severity,
+          severityName
+        };
+      }
+      opData.byStatusCode[statusCode].count++;
+
+      this.metrics.schemaResponsesByOperation = updatedSchema;
     },
 
     handleReqResMerged(payload) {
@@ -211,6 +251,7 @@ export const useSocketStore = defineStore('socket', {
         engineConfig: null,
         totalResponses: 0,
         statusCodesByOperation: {},
+        schemaResponsesByOperation: {},
         validityMatrix: {
           validSuccess: 0,
           validError: 0,

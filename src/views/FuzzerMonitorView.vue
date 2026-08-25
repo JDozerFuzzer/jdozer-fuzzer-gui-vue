@@ -130,6 +130,115 @@
         </GlassCard>
       </div>
 
+      <!-- Schema Response OpenAPI Contract Compliance Section -->
+      <div class="schema-section">
+        <GlassCard title="Coincidencia de Contrato OpenAPI (Schema Response) por Operación">
+          <div class="schema-summary-bar">
+            <div class="schema-kpi exact">
+              <span class="kpi-label">Exact Match</span>
+              <span class="kpi-val">{{ schemaGlobalTotals.exact }}</span>
+              <span class="kpi-tag">Exacta (Info)</span>
+            </div>
+            <div class="schema-kpi wildcard">
+              <span class="kpi-label">Wildcard Match</span>
+              <span class="kpi-val">{{ schemaGlobalTotals.wildcard }}</span>
+              <span class="kpi-tag">Comodín (Info)</span>
+            </div>
+            <div class="schema-kpi default">
+              <span class="kpi-label">Default Match</span>
+              <span class="kpi-val">{{ schemaGlobalTotals.default }}</span>
+              <span class="kpi-tag">Default (Low)</span>
+            </div>
+            <div class="schema-kpi error5xx">
+              <span class="kpi-label">5xx Undocumented</span>
+              <span class="kpi-val">{{ schemaGlobalTotals['5xx'] }}</span>
+              <span class="kpi-tag">5xx (Medium)</span>
+            </div>
+            <div class="schema-kpi none">
+              <span class="kpi-label">No Match</span>
+              <span class="kpi-val">{{ schemaGlobalTotals.none }}</span>
+              <span class="kpi-tag">No Doc (High)</span>
+            </div>
+          </div>
+
+          <div class="schema-layout">
+            <!-- Chart Stacked by Operation -->
+            <div class="chart-wrapper">
+              <v-chart class="echart" :option="schemaChartOption" autoresize />
+            </div>
+
+            <!-- Operations Breakdown Cards -->
+            <div class="schema-ops-list">
+              <div v-if="Object.keys(socketStore.metrics.schemaResponsesByOperation).length === 0" class="empty-schema">
+                Esperando eventos schema-response:status-code...
+              </div>
+              <div 
+                v-else
+                v-for="(data, opId) in socketStore.metrics.schemaResponsesByOperation" 
+                :key="opId"
+                class="schema-op-card"
+              >
+                <div class="schema-op-header">
+                  <span class="schema-op-title" :title="opId">{{ opId }}</span>
+                  <span class="schema-op-total">{{ data.total }} respuestas</span>
+                </div>
+
+                <!-- MatchType Pills -->
+                <div class="schema-badges-row">
+                  <span class="schema-badge badge-exact" title="Coincidencia Exacta con Contrato">
+                    Exact: {{ data.byMatchType.exact || 0 }}
+                  </span>
+                  <span class="schema-badge badge-wildcard" title="Coincidencia por Comodín (e.g. 4XX)">
+                    Wildcard: {{ data.byMatchType.wildcard || 0 }}
+                  </span>
+                  <span class="schema-badge badge-default" title="Respuesta por cláusula Default">
+                    Default: {{ data.byMatchType.default || 0 }}
+                  </span>
+                  <span class="schema-badge badge-5xx" title="Error 5xx No Especificado">
+                    5xx: {{ data.byMatchType['5xx'] || 0 }}
+                  </span>
+                  <span class="schema-badge badge-none" title="Código No Documentado en Contrato">
+                    None: {{ data.byMatchType.none || 0 }}
+                  </span>
+                </div>
+
+                <!-- Status Code details table per operation -->
+                <div class="schema-codes-table-wrapper" v-if="Object.keys(data.byStatusCode).length > 0">
+                  <table class="schema-codes-table">
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Matched</th>
+                        <th>Tipo Match</th>
+                        <th>Severidad</th>
+                        <th>Cant.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(info, code) in data.byStatusCode" :key="code">
+                        <td class="font-mono code-val">{{ code }}</td>
+                        <td class="font-mono text-muted">{{ info.matched }}</td>
+                        <td>
+                          <span :class="'match-type-pill match-' + info.matchType">
+                            {{ info.matchType }}
+                          </span>
+                        </td>
+                        <td>
+                          <span :class="'sev-pill sev-' + info.severityName">
+                            {{ info.severityName }} ({{ info.severity }})
+                          </span>
+                        </td>
+                        <td class="count-val">{{ info.count }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
       <!-- False Positive / Penetration Levels -->
       <div class="fp-section">
         <GlassCard title="Niveles de Penetración (False Positives)">
@@ -239,8 +348,8 @@ const chartOption = computed(() => {
     // Definir color según el tipo de status
     let color = '#60a5fa'; // Blue (Info/Other)
     if (code.startsWith('2')) color = '#4ade80'; // Green (Success)
-    if (code.startsWith('3')) color = '#fbbf24'; // Yellow (Client Error)
-    if (code.startsWith('4')) color = '#f87171'; // Red (Server Error)
+    if (code.startsWith('4')) color = '#fbbf24'; // Yellow (Client Error)
+    if (code.startsWith('5')) color = '#f87171'; // Red (Server Error)
 
     return {
       name: `HTTP ${code}`,
@@ -282,6 +391,7 @@ const chartOption = computed(() => {
 // Validity Matrix Chart
 const validityChartOption = computed(() => {
   const vm = socketStore.metrics.validityMatrix;
+  vm.validSuccess = 50;
   const total = vm.validSuccess + vm.validError + vm.invalidRejected + vm.invalidAccepted;
 
   if (total === 0) {
@@ -383,6 +493,81 @@ const fpChartOption = computed(() => {
     series
   };
 })
+
+// Schema OpenAPI contract compliance totals
+const schemaGlobalTotals = computed(() => {
+  const byOp = socketStore.metrics.schemaResponsesByOperation || {};
+  const totals = { exact: 0, wildcard: 0, default: 0, '5xx': 0, none: 0 };
+
+  Object.values(byOp).forEach(opData => {
+    const bm = opData.byMatchType || {};
+    totals.exact += bm.exact || 0;
+    totals.wildcard += bm.wildcard || 0;
+    totals.default += bm.default || 0;
+    totals['5xx'] += bm['5xx'] || 0;
+    totals.none += bm.none || 0;
+  });
+
+  return totals;
+});
+
+// Schema Chart Option (Stacked Match Types by Operation)
+const schemaChartOption = computed(() => {
+  const byOp = socketStore.metrics.schemaResponsesByOperation || {};
+  const operations = Object.keys(byOp);
+
+  if (operations.length === 0) {
+    return {
+      title: { text: 'Sin datos aún', textStyle: { color: '#a0a0b0' }, left: 'center', top: 'middle' }
+    };
+  }
+
+  // Sort operations ascending by total responses
+  operations.sort((a, b) => (byOp[a].total || 0) - (byOp[b].total || 0));
+
+  const matchTypes = [
+    { key: 'exact', name: 'Exact Match', color: '#4ade80' },
+    { key: 'wildcard', name: 'Wildcard', color: '#60a5fa' },
+    { key: 'default', name: 'Default', color: '#fbbf24' },
+    { key: '5xx', name: '5xx Undoc', color: '#fb923c' },
+    { key: 'none', name: 'No Match', color: '#f87171' }
+  ];
+
+  const series = matchTypes.map(m => ({
+    name: m.name,
+    type: 'bar',
+    stack: 'schemaContract',
+    itemStyle: { color: m.color },
+    data: operations.map(op => byOp[op]?.byMatchType[m.key] || 0)
+  }));
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(28, 28, 40, 0.9)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      textStyle: { color: '#f0f0f5' }
+    },
+    legend: {
+      data: matchTypes.map(m => m.name),
+      textStyle: { color: '#a0a0b0' },
+      top: 0
+    },
+    grid: { left: '3%', right: '4%', top: 40, bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: operations,
+      axisLabel: { color: '#a0a0b0' }
+    },
+    series
+  };
+});
 </script>
 
 <style scoped>
@@ -816,6 +1001,194 @@ const fpChartOption = computed(() => {
 .fp-badge.level-2 { background: rgba(251,191,36,0.2); color: #fbbf24; }
 .fp-badge.level-1 { background: rgba(148,163,184,0.2); color: #94a3b8; }
 
+/* Schema Response OpenAPI Section */
+.schema-section {
+  margin-top: 24px;
+}
+
+.schema-summary-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.schema-kpi {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.schema-kpi.exact { border-left: 4px solid #4ade80; }
+.schema-kpi.wildcard { border-left: 4px solid #60a5fa; }
+.schema-kpi.default { border-left: 4px solid #fbbf24; }
+.schema-kpi.error5xx { border-left: 4px solid #fb923c; }
+.schema-kpi.none { border-left: 4px solid #f87171; }
+
+.schema-kpi .kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.schema-kpi .kpi-val {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+}
+
+.schema-kpi .kpi-tag {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.schema-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.schema-ops-list {
+  max-height: 350px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+
+.schema-ops-list::-webkit-scrollbar { width: 4px; }
+.schema-ops-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+.schema-ops-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+.empty-schema {
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 40px;
+  font-size: 13px;
+}
+
+.schema-op-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.schema-op-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.schema-op-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.schema-op-total {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.schema-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.schema-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.badge-exact { background: rgba(74, 222, 128, 0.12); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+.badge-wildcard { background: rgba(96, 165, 250, 0.12); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); }
+.badge-default { background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+.badge-5xx { background: rgba(251, 146, 60, 0.12); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+.badge-none { background: rgba(248, 113, 113, 0.12); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+
+.schema-codes-table-wrapper {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.schema-codes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.schema-codes-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px;
+}
+
+.schema-codes-table td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.code-val {
+  color: var(--accent-primary);
+  font-weight: bold;
+}
+
+.count-val {
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+.match-type-pill {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.match-exact { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+.match-wildcard { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+.match-default { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+.match-5xx { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
+.match-none { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+
+.sev-pill {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sev-info { background: rgba(96, 165, 250, 0.15); color: #93c5fd; }
+.sev-low { background: rgba(251, 191, 36, 0.15); color: #fde047; }
+.sev-medium { background: rgba(251, 146, 60, 0.15); color: #fdba74; }
+.sev-high { background: rgba(248, 113, 113, 0.2); color: #fca5a5; }
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .monitor-grid {
@@ -828,6 +1201,10 @@ const fpChartOption = computed(() => {
   }
 
   .validity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schema-layout {
     grid-template-columns: 1fr;
   }
 
