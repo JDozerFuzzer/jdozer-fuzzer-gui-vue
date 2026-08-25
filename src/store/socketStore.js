@@ -13,6 +13,7 @@ export const useSocketStore = defineStore('socket', {
       totalResponses: 0,
       statusCodesByOperation: {}, // format: { 'addPet': { 200: 5, 400: 2, 500: 1 } }
       schemaResponsesByOperation: {}, // format: { 'createUser': { total: 10, byMatchType: {...}, bySeverityName: {...}, byStatusCode: {...} } }
+      schemaProbeByOperation: {}, // format: { 'placeOrder': { valid: 10, invalid: 5, total: 15 } }
       validityMatrix: {
         validSuccess: 0,    // isValid=true  + 2xx → Esperado
         validError: 0,      // isValid=true  + 4xx/5xx → Bug potencial
@@ -79,6 +80,9 @@ export const useSocketStore = defineStore('socket', {
               break;
             case 'schema-request:payload':
               this.handleFalsePositive(data.payload);
+              break;
+            case 'schema-probe:payload':
+              this.handleSchemaProbe(data.payload);
               break;
           }
         } catch (e) {
@@ -243,6 +247,28 @@ export const useSocketStore = defineStore('socket', {
       this.metrics.falsePositives = { byLevel, byOperation, recent };
     },
 
+    handleSchemaProbe(payload) {
+      const operationId = payload?.operationId;
+      const isValid = payload?.isValid;
+
+      if (!operationId || isValid === undefined) return;
+
+      const updated = JSON.parse(JSON.stringify(this.metrics.schemaProbeByOperation || {}));
+
+      if (!updated[operationId]) {
+        updated[operationId] = { valid: 0, invalid: 0, total: 0 };
+      }
+
+      if (isValid) {
+        updated[operationId].valid++;
+      } else {
+        updated[operationId].invalid++;
+      }
+      updated[operationId].total++;
+
+      this.metrics.schemaProbeByOperation = updated;
+    },
+
     clearMetrics() {
       this.eventsLog = [];
       this.metrics = {
@@ -252,6 +278,7 @@ export const useSocketStore = defineStore('socket', {
         totalResponses: 0,
         statusCodesByOperation: {},
         schemaResponsesByOperation: {},
+        schemaProbeByOperation: {},
         validityMatrix: {
           validSuccess: 0,
           validError: 0,

@@ -203,6 +203,78 @@
         </GlassCard>
       </div>
 
+      <!-- Schema Probe Request Payload Validity Section -->
+      <div class="schema-probe-section">
+        <GlassCard title="Validación de Schemas de Solicitud (Schema Probe) por Operación">
+          <div class="schema-summary-bar">
+            <div class="schema-kpi total-probe">
+              <span class="kpi-label">Total Solicitudes</span>
+              <span class="kpi-val">{{ schemaProbeGlobalTotals.total }}</span>
+              <span class="kpi-tag">Inspeccionadas</span>
+            </div>
+            <div class="schema-kpi exact">
+              <span class="kpi-label">Válidas</span>
+              <span class="kpi-val">{{ schemaProbeGlobalTotals.valid }}</span>
+              <span class="kpi-tag">{{ schemaProbeGlobalTotals.validPct }}% Cumple Schema</span>
+            </div>
+            <div class="schema-kpi none">
+              <span class="kpi-label">Inválidas</span>
+              <span class="kpi-val">{{ schemaProbeGlobalTotals.invalid }}</span>
+              <span class="kpi-tag">{{ schemaProbeGlobalTotals.invalidPct }}% Mutación / No Cumple</span>
+            </div>
+          </div>
+
+          <div class="schema-layout">
+            <!-- Chart Stacked by Operation -->
+            <div class="chart-wrapper">
+              <v-chart class="echart" :option="schemaProbeChartOption" autoresize />
+            </div>
+
+            <!-- Operations Breakdown List -->
+            <div class="schema-ops-list">
+              <div v-if="Object.keys(socketStore.metrics.schemaProbeByOperation).length === 0" class="empty-schema">
+                Esperando eventos schema-probe:payload...
+              </div>
+              <div 
+                v-else
+                v-for="(data, opId) in socketStore.metrics.schemaProbeByOperation" 
+                :key="opId"
+                class="schema-op-card"
+              >
+                <div class="schema-op-header">
+                  <span class="schema-op-title" :title="opId">{{ opId }}</span>
+                  <span class="schema-op-total">{{ data.total }} probes</span>
+                </div>
+
+                <!-- Progress bar for valid/invalid ratio -->
+                <div class="probe-progress-bar">
+                  <div 
+                    class="probe-bar-valid" 
+                    :style="{ width: (data.total > 0 ? (data.valid / data.total * 100) : 0) + '%' }"
+                    title="Válidos"
+                  ></div>
+                  <div 
+                    class="probe-bar-invalid" 
+                    :style="{ width: (data.total > 0 ? (data.invalid / data.total * 100) : 0) + '%' }"
+                    title="Inválidos"
+                  ></div>
+                </div>
+
+                <!-- Counters Row -->
+                <div class="schema-badges-row">
+                  <span class="schema-badge badge-exact" title="Request cumple con el schema definido en contrato">
+                    ✅ Válidos: {{ data.valid }} ({{ data.total > 0 ? Math.round(data.valid / data.total * 100) : 0 }}%)
+                  </span>
+                  <span class="schema-badge badge-none" title="Request NO cumple con el schema definido en contrato">
+                    ❌ Inválidos: {{ data.invalid }} ({{ data.total > 0 ? Math.round(data.invalid / data.total * 100) : 0 }}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
 
       <!-- Validity Matrix Chart -->
       <div class="validity-section">
@@ -549,6 +621,84 @@ const schemaChartOption = computed(() => {
     },
     legend: {
       data: matchTypes.map(m => m.name),
+      textStyle: { color: '#a0a0b0' },
+      top: 0
+    },
+    grid: { left: '3%', right: '4%', top: 40, bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: operations,
+      axisLabel: { color: '#a0a0b0' }
+    },
+    series
+  };
+});
+
+// Schema Probe Request Payload Validity Totals
+const schemaProbeGlobalTotals = computed(() => {
+  const byOp = socketStore.metrics.schemaProbeByOperation || {};
+  let valid = 0;
+  let invalid = 0;
+  let total = 0;
+
+  Object.values(byOp).forEach(opData => {
+    valid += opData.valid || 0;
+    invalid += opData.invalid || 0;
+    total += opData.total || 0;
+  });
+
+  const validPct = total > 0 ? Math.round((valid / total) * 100) : 0;
+  const invalidPct = total > 0 ? Math.round((invalid / total) * 100) : 0;
+
+  return { valid, invalid, total, validPct, invalidPct };
+});
+
+// Schema Probe Chart Option (Stacked Bar: Valid vs Invalid per Operation)
+const schemaProbeChartOption = computed(() => {
+  const byOp = socketStore.metrics.schemaProbeByOperation || {};
+  const operations = Object.keys(byOp);
+
+  if (operations.length === 0) {
+    return {
+      title: { text: 'Sin datos aún', textStyle: { color: '#a0a0b0' }, left: 'center', top: 'middle' }
+    };
+  }
+
+  // Sort operations ascending by total probes
+  operations.sort((a, b) => (byOp[a].total || 0) - (byOp[b].total || 0));
+
+  const series = [
+    {
+      name: 'Válidos',
+      type: 'bar',
+      stack: 'probeValidity',
+      itemStyle: { color: '#4ade80' },
+      data: operations.map(op => byOp[op]?.valid || 0)
+    },
+    {
+      name: 'Inválidos',
+      type: 'bar',
+      stack: 'probeValidity',
+      itemStyle: { color: '#f87171' },
+      data: operations.map(op => byOp[op]?.invalid || 0)
+    }
+  ];
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(28, 28, 40, 0.9)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      textStyle: { color: '#f0f0f5' }
+    },
+    legend: {
+      data: ['Válidos', 'Inválidos'],
       textStyle: { color: '#a0a0b0' },
       top: 0
     },
@@ -1331,6 +1481,34 @@ const schemaChartOption = computed(() => {
 .sev-high {
   background: rgba(248, 113, 113, 0.2);
   color: #fca5a5;
+}
+
+/* Schema Probe Section */
+.schema-probe-section {
+  margin-top: 24px;
+}
+
+.schema-kpi.total-probe {
+  border-left: 4px solid #60a5fa;
+}
+
+.probe-progress-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+
+.probe-bar-valid {
+  background: #4ade80;
+  transition: width 0.3s ease;
+}
+
+.probe-bar-invalid {
+  background: #f87171;
+  transition: width 0.3s ease;
 }
 
 /* Responsive adjustments */
