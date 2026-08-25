@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="monitor-container">
-      
+
       <!-- Top Actions / Status -->
       <div class="monitor-header">
         <div class="status-badge" :class="socketStore.isConnected ? 'connected' : 'disconnected'">
@@ -19,7 +19,7 @@
           <div class="kpi-content cases-card">
             <span class="kpi-label">Casos Generados Totales</span>
             <span class="kpi-value">{{ socketStore.metrics.totalCasesCreated }}</span>
-            
+
             <div class="op-cases-list" v-if="Object.keys(socketStore.metrics.casesByOperation).length > 0">
               <div class="op-case-item" v-for="(count, op) in socketStore.metrics.casesByOperation" :key="op">
                 <span class="op-name" :title="op">{{ op }}</span>
@@ -28,27 +28,32 @@
             </div>
           </div>
         </GlassCard>
-        
+
         <GlassCard>
           <div class="kpi-content cases-card">
             <span class="kpi-label">Configuración del Ataque</span>
-            <div v-if="!socketStore.metrics.engineConfig" class="kpi-value highlight" style="font-size: 20px; padding-top: 10px;">
+            <div v-if="!socketStore.metrics.engineConfig" class="kpi-value highlight"
+              style="font-size: 20px; padding-top: 10px;">
               Esperando motor...
             </div>
             <div v-else class="engine-config-list">
               <div class="config-section">
-                <span class="config-title">Fases ({{ Object.keys(socketStore.metrics.engineConfig.phases).length }})</span>
+                <span class="config-title">Fases ({{ Object.keys(socketStore.metrics.engineConfig.phases).length
+                }})</span>
                 <div class="config-items">
-                  <div class="config-item" v-for="(phase, idx) in socketStore.metrics.engineConfig.phases" :key="'phase-'+idx">
-                    <span class="config-name">{{ idx || `Phase ${idx+1}` }}</span>
+                  <div class="config-item" v-for="(phase, idx) in socketStore.metrics.engineConfig.phases"
+                    :key="'phase-' + idx">
+                    <span class="config-name">{{ idx || `Phase ${idx + 1}` }}</span>
                     <span class="config-badge">{{ phase.duration }}s</span>
                   </div>
                 </div>
               </div>
               <div class="config-section">
-                <span class="config-title">Escenarios ({{ Object.keys(socketStore.metrics.engineConfig.scenarios).length }})</span>
+                <span class="config-title">Escenarios ({{ Object.keys(socketStore.metrics.engineConfig.scenarios).length
+                }})</span>
                 <div class="config-items">
-                  <div class="config-item" v-for="(val, scenario) in socketStore.metrics.engineConfig.scenarios" :key="'scen-'+scenario">
+                  <div class="config-item" v-for="(val, scenario) in socketStore.metrics.engineConfig.scenarios"
+                    :key="'scen-' + scenario">
                     <span class="config-name">{{ scenario }}</span>
                     <span class="config-badge">{{ val.weight }}</span>
                   </div>
@@ -76,11 +81,7 @@
               <div v-if="socketStore.eventsLog.length === 0" class="empty-log">
                 Esperando eventos de fuzzer.running...
               </div>
-              <div 
-                v-for="(event, idx) in socketStore.eventsLog" 
-                :key="idx" 
-                class="log-entry"
-              >
+              <div v-for="(event, idx) in socketStore.eventsLog" :key="idx" class="log-entry">
                 <span class="log-time">[{{ event.time }}]</span>
                 <span class="log-type">{{ event.type }}</span>
                 <!--
@@ -95,39 +96,6 @@
             </div>
           </GlassCard>
         </div>
-      </div>
-
-      <!-- Validity Matrix Chart -->
-      <div class="validity-section">
-        <GlassCard title="Análisis de Validez: Request vs Response">
-          <div class="validity-grid">
-            <div class="chart-wrapper">
-              <v-chart class="echart" :option="validityChartOption" autoresize />
-            </div>
-            <div class="validity-quadrants">
-              <div class="quadrant expected">
-                <span class="q-label">✅ Válido → 2xx</span>
-                <span class="q-value">{{ socketStore.metrics.validityMatrix.validSuccess }}</span>
-                <span class="q-desc">Comportamiento esperado</span>
-              </div>
-              <div class="quadrant danger">
-                <span class="q-label">🔴 Inválido → 2xx</span>
-                <span class="q-value">{{ socketStore.metrics.validityMatrix.invalidAccepted }}</span>
-                <span class="q-desc">Posible vulnerabilidad</span>
-              </div>
-              <div class="quadrant warning">
-                <span class="q-label">⚠️ Válido → Error</span>
-                <span class="q-value">{{ socketStore.metrics.validityMatrix.validError }}</span>
-                <span class="q-desc">Posible bug</span>
-              </div>
-              <div class="quadrant safe">
-                <span class="q-label">✅ Inválido → Error</span>
-                <span class="q-value">{{ socketStore.metrics.validityMatrix.invalidRejected }}</span>
-                <span class="q-desc">Rechazo correcto</span>
-              </div>
-            </div>
-          </div>
-        </GlassCard>
       </div>
 
       <!-- Schema Response OpenAPI Contract Compliance Section -->
@@ -172,12 +140,8 @@
               <div v-if="Object.keys(socketStore.metrics.schemaResponsesByOperation).length === 0" class="empty-schema">
                 Esperando eventos schema-response:status-code...
               </div>
-              <div 
-                v-else
-                v-for="(data, opId) in socketStore.metrics.schemaResponsesByOperation" 
-                :key="opId"
-                class="schema-op-card"
-              >
+              <div v-else v-for="(data, opId) in socketStore.metrics.schemaResponsesByOperation" :key="opId"
+                class="schema-op-card">
                 <div class="schema-op-header">
                   <span class="schema-op-title" :title="opId">{{ opId }}</span>
                   <span class="schema-op-total">{{ data.total }} respuestas</span>
@@ -233,6 +197,40 @@
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+
+      <!-- Validity Matrix Chart -->
+      <div class="validity-section">
+        <GlassCard title="Análisis de Validez: Request vs Response">
+          <div class="validity-grid">
+            <div class="chart-wrapper">
+              <v-chart class="echart" :option="validityChartOption" autoresize />
+            </div>
+            <div class="validity-quadrants">
+              <div class="quadrant expected">
+                <span class="q-label">✅ Válido → 2xx</span>
+                <span class="q-value">{{ socketStore.metrics.validityMatrix.validSuccess }}</span>
+                <span class="q-desc">Comportamiento esperado</span>
+              </div>
+              <div class="quadrant danger">
+                <span class="q-label">🔴 Inválido → 2xx</span>
+                <span class="q-value">{{ socketStore.metrics.validityMatrix.invalidAccepted }}</span>
+                <span class="q-desc">Posible vulnerabilidad</span>
+              </div>
+              <div class="quadrant warning">
+                <span class="q-label">⚠️ Válido → Error</span>
+                <span class="q-value">{{ socketStore.metrics.validityMatrix.validError }}</span>
+                <span class="q-desc">Posible bug</span>
+              </div>
+              <div class="quadrant safe">
+                <span class="q-label">✅ Inválido → Error</span>
+                <span class="q-value">{{ socketStore.metrics.validityMatrix.invalidRejected }}</span>
+                <span class="q-desc">Rechazo correcto</span>
               </div>
             </div>
           </div>
@@ -322,7 +320,7 @@ const riskLabel = (level) => {
 const chartOption = computed(() => {
   const operationsMap = socketStore.metrics.statusCodesByOperation;
   const operations = Object.keys(operationsMap);
-  
+
   if (operations.length === 0) {
     return {
       title: { text: 'Sin datos aún', textStyle: { color: '#a0a0b0' }, left: 'center', top: 'middle' }
@@ -615,9 +613,17 @@ const schemaChartOption = computed(() => {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
 }
 
 .btn-outline {
@@ -734,10 +740,12 @@ const schemaChartOption = computed(() => {
 .engine-config-list::-webkit-scrollbar {
   width: 4px;
 }
+
 .engine-config-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
 }
+
 .engine-config-list::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 4px;
@@ -931,12 +939,26 @@ const schemaChartOption = computed(() => {
   min-width: 180px;
 }
 
-.fp-level-card.high { background: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.3); }
-.fp-level-card.medium { background: rgba(251, 146, 60, 0.1); }
-.fp-level-card.low { background: rgba(251, 191, 36, 0.08); }
-.fp-level-card.other { background: rgba(148, 163, 184, 0.08); }
+.fp-level-card.high {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
 
-.fp-level-icon { font-size: 18px; }
+.fp-level-card.medium {
+  background: rgba(251, 146, 60, 0.1);
+}
+
+.fp-level-card.low {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.fp-level-card.other {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.fp-level-icon {
+  font-size: 18px;
+}
 
 .fp-level-count {
   font-size: 24px;
@@ -967,9 +989,19 @@ const schemaChartOption = computed(() => {
   gap: 4px;
 }
 
-.fp-recent-list::-webkit-scrollbar { width: 4px; }
-.fp-recent-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-.fp-recent-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.fp-recent-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fp-recent-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.fp-recent-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
 
 .fp-recent-item {
   display: flex;
@@ -981,10 +1013,25 @@ const schemaChartOption = computed(() => {
   border-radius: 4px;
 }
 
-.fp-time { color: var(--text-muted); min-width: 70px; }
-.fp-op { color: var(--text-secondary); flex: 1; }
-.fp-ctx { color: var(--text-muted); font-style: italic; }
-.fp-code { color: var(--text-primary); font-weight: bold; }
+.fp-time {
+  color: var(--text-muted);
+  min-width: 70px;
+}
+
+.fp-op {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.fp-ctx {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.fp-code {
+  color: var(--text-primary);
+  font-weight: bold;
+}
 
 .fp-badge {
   font-size: 10px;
@@ -996,10 +1043,25 @@ const schemaChartOption = computed(() => {
   text-align: center;
 }
 
-.fp-badge.level-4 { background: rgba(248,113,113,0.2); color: #f87171; }
-.fp-badge.level-3 { background: rgba(251,146,60,0.2); color: #fb923c; }
-.fp-badge.level-2 { background: rgba(251,191,36,0.2); color: #fbbf24; }
-.fp-badge.level-1 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+.fp-badge.level-4 {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.fp-badge.level-3 {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+}
+
+.fp-badge.level-2 {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.fp-badge.level-1 {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
 
 /* Schema Response OpenAPI Section */
 .schema-section {
@@ -1026,11 +1088,25 @@ const schemaChartOption = computed(() => {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.schema-kpi.exact { border-left: 4px solid #4ade80; }
-.schema-kpi.wildcard { border-left: 4px solid #60a5fa; }
-.schema-kpi.default { border-left: 4px solid #fbbf24; }
-.schema-kpi.error5xx { border-left: 4px solid #fb923c; }
-.schema-kpi.none { border-left: 4px solid #f87171; }
+.schema-kpi.exact {
+  border-left: 4px solid #4ade80;
+}
+
+.schema-kpi.wildcard {
+  border-left: 4px solid #60a5fa;
+}
+
+.schema-kpi.default {
+  border-left: 4px solid #fbbf24;
+}
+
+.schema-kpi.error5xx {
+  border-left: 4px solid #fb923c;
+}
+
+.schema-kpi.none {
+  border-left: 4px solid #f87171;
+}
 
 .schema-kpi .kpi-label {
   font-size: 11px;
@@ -1066,9 +1142,19 @@ const schemaChartOption = computed(() => {
   padding-right: 6px;
 }
 
-.schema-ops-list::-webkit-scrollbar { width: 4px; }
-.schema-ops-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
-.schema-ops-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.schema-ops-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.schema-ops-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.schema-ops-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
 
 .empty-schema {
   color: var(--text-muted);
@@ -1123,11 +1209,35 @@ const schemaChartOption = computed(() => {
   border-radius: 6px;
 }
 
-.badge-exact { background: rgba(74, 222, 128, 0.12); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
-.badge-wildcard { background: rgba(96, 165, 250, 0.12); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); }
-.badge-default { background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
-.badge-5xx { background: rgba(251, 146, 60, 0.12); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
-.badge-none { background: rgba(248, 113, 113, 0.12); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+.badge-exact {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.badge-wildcard {
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.badge-default {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.badge-5xx {
+  background: rgba(251, 146, 60, 0.12);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
+.badge-none {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
 
 .schema-codes-table-wrapper {
   overflow-x: auto;
@@ -1171,11 +1281,30 @@ const schemaChartOption = computed(() => {
   text-transform: uppercase;
 }
 
-.match-exact { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
-.match-wildcard { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
-.match-default { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.match-5xx { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
-.match-none { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+.match-exact {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.match-wildcard {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+}
+
+.match-default {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.match-5xx {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+}
+
+.match-none {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
 
 .sev-pill {
   padding: 2px 6px;
@@ -1184,10 +1313,25 @@ const schemaChartOption = computed(() => {
   font-weight: 600;
 }
 
-.sev-info { background: rgba(96, 165, 250, 0.15); color: #93c5fd; }
-.sev-low { background: rgba(251, 191, 36, 0.15); color: #fde047; }
-.sev-medium { background: rgba(251, 146, 60, 0.15); color: #fdba74; }
-.sev-high { background: rgba(248, 113, 113, 0.2); color: #fca5a5; }
+.sev-info {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+.sev-low {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fde047;
+}
+
+.sev-medium {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fdba74;
+}
+
+.sev-high {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fca5a5;
+}
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
@@ -1195,7 +1339,7 @@ const schemaChartOption = computed(() => {
     grid-template-columns: 1fr;
     height: auto;
   }
-  
+
   .terminal-log {
     height: 300px;
   }
