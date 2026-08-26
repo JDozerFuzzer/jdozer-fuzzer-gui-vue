@@ -14,6 +14,7 @@ export const useSocketStore = defineStore('socket', {
       statusCodesByOperation: {}, // format: { 'addPet': { 200: 5, 400: 2, 500: 1 } }
       schemaResponsesByOperation: {}, // format: { 'createUser': { total: 10, byMatchType: {...}, bySeverityName: {...}, byStatusCode: {...} } }
       schemaProbeByOperation: {}, // format: { 'placeOrder': { valid: 10, invalid: 5, total: 15 } }
+      schemaResponsePayloadByOperation: {}, // format: { 'updateUser': { total: 10, valid: 8, invalid: 2, bySeverityLevel: {...}, bySeverityName: {...}, byType: {...} } }
       validityMatrix: {
         validSuccess: 0,    // isValid=true  + 2xx → Esperado
         validError: 0,      // isValid=true  + 4xx/5xx → Bug potencial
@@ -83,6 +84,9 @@ export const useSocketStore = defineStore('socket', {
               break;
             case 'schema-probe:payload':
               this.handleSchemaProbe(data.payload);
+              break;
+            case 'schema-response:payload':
+              this.handleSchemaResponsePayload(data.payload);
               break;
           }
         } catch (e) {
@@ -269,6 +273,61 @@ export const useSocketStore = defineStore('socket', {
       this.metrics.schemaProbeByOperation = updated;
     },
 
+    handleSchemaResponsePayload(payload) {
+      const operationId = payload?.operationId;
+      if (!operationId) return;
+
+      const isValid = payload.isValid !== undefined ? payload.isValid : true;
+      const severityLevel = payload.severityLevel !== undefined ? payload.severityLevel : 1;
+      const severityName = (payload.severityName || (
+        severityLevel === 1 ? 'INFO' :
+        severityLevel === 2 ? 'LOW' :
+        severityLevel === 3 ? 'MEDIUM' :
+        severityLevel === 4 ? 'HIGH' : 'CRITICAL'
+      )).toUpperCase();
+      const type = payload.type || 'UNKNOWN';
+
+      const updated = JSON.parse(JSON.stringify(this.metrics.schemaResponsePayloadByOperation || {}));
+
+      if (!updated[operationId]) {
+        updated[operationId] = {
+          total: 0,
+          valid: 0,
+          invalid: 0,
+          bySeverityLevel: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          bySeverityName: { INFO: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 },
+          byType: {}
+        };
+      }
+
+      const opData = updated[operationId];
+      opData.total++;
+      if (isValid) {
+        opData.valid++;
+      } else {
+        opData.invalid++;
+      }
+
+      if (opData.bySeverityLevel[severityLevel] !== undefined) {
+        opData.bySeverityLevel[severityLevel]++;
+      } else {
+        opData.bySeverityLevel[severityLevel] = 1;
+      }
+
+      if (opData.bySeverityName[severityName] !== undefined) {
+        opData.bySeverityName[severityName]++;
+      } else {
+        opData.bySeverityName[severityName] = 1;
+      }
+
+      if (!opData.byType[type]) {
+        opData.byType[type] = 0;
+      }
+      opData.byType[type]++;
+
+      this.metrics.schemaResponsePayloadByOperation = updated;
+    },
+
     clearMetrics() {
       this.eventsLog = [];
       this.metrics = {
@@ -279,6 +338,7 @@ export const useSocketStore = defineStore('socket', {
         statusCodesByOperation: {},
         schemaResponsesByOperation: {},
         schemaProbeByOperation: {},
+        schemaResponsePayloadByOperation: {},
         validityMatrix: {
           validSuccess: 0,
           validError: 0,

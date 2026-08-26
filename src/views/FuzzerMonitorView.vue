@@ -39,7 +39,7 @@
             <div v-else class="engine-config-list">
               <div class="config-section">
                 <span class="config-title">Fases ({{ Object.keys(socketStore.metrics.engineConfig.phases).length
-                }})</span>
+                  }})</span>
                 <div class="config-items">
                   <div class="config-item" v-for="(phase, idx) in socketStore.metrics.engineConfig.phases"
                     :key="'phase-' + idx">
@@ -50,7 +50,7 @@
               </div>
               <div class="config-section">
                 <span class="config-title">Escenarios ({{ Object.keys(socketStore.metrics.engineConfig.scenarios).length
-                }})</span>
+                  }})</span>
                 <div class="config-items">
                   <div class="config-item" v-for="(val, scenario) in socketStore.metrics.engineConfig.scenarios"
                     :key="'scen-' + scenario">
@@ -235,12 +235,8 @@
               <div v-if="Object.keys(socketStore.metrics.schemaProbeByOperation).length === 0" class="empty-schema">
                 Esperando eventos schema-probe:payload...
               </div>
-              <div 
-                v-else
-                v-for="(data, opId) in socketStore.metrics.schemaProbeByOperation" 
-                :key="opId"
-                class="schema-op-card"
-              >
+              <div v-else v-for="(data, opId) in socketStore.metrics.schemaProbeByOperation" :key="opId"
+                class="schema-op-card">
                 <div class="schema-op-header">
                   <span class="schema-op-title" :title="opId">{{ opId }}</span>
                   <span class="schema-op-total">{{ data.total }} probes</span>
@@ -248,16 +244,12 @@
 
                 <!-- Progress bar for valid/invalid ratio -->
                 <div class="probe-progress-bar">
-                  <div 
-                    class="probe-bar-valid" 
-                    :style="{ width: (data.total > 0 ? (data.valid / data.total * 100) : 0) + '%' }"
-                    title="Válidos"
-                  ></div>
-                  <div 
-                    class="probe-bar-invalid" 
+                  <div class="probe-bar-valid"
+                    :style="{ width: (data.total > 0 ? (data.valid / data.total * 100) : 0) + '%' }" title="Válidos">
+                  </div>
+                  <div class="probe-bar-invalid"
                     :style="{ width: (data.total > 0 ? (data.invalid / data.total * 100) : 0) + '%' }"
-                    title="Inválidos"
-                  ></div>
+                    title="Inválidos"></div>
                 </div>
 
                 <!-- Counters Row -->
@@ -266,8 +258,102 @@
                     ✅ Válidos: {{ data.valid }} ({{ data.total > 0 ? Math.round(data.valid / data.total * 100) : 0 }}%)
                   </span>
                   <span class="schema-badge badge-none" title="Request NO cumple con el schema definido en contrato">
-                    ❌ Inválidos: {{ data.invalid }} ({{ data.total > 0 ? Math.round(data.invalid / data.total * 100) : 0 }}%)
+                    ❌ Inválidos: {{ data.invalid }} ({{ data.total > 0 ? Math.round(data.invalid / data.total * 100) : 0
+                    }}%)
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <!-- Schema Response Payload Validity Section -->
+      <div class="schema-response-payload-section">
+        <GlassCard title="Validación de Payloads de Respuesta (Schema Response Payload) por Operación">
+          <div class="schema-summary-bar">
+            <div class="schema-kpi total-payload">
+              <span class="kpi-label">Total Respuestas</span>
+              <span class="kpi-val">{{ schemaResponsePayloadGlobalTotals.total }}</span>
+              <span class="kpi-tag">Payloads Inspeccionados</span>
+            </div>
+            <div class="schema-kpi exact">
+              <span class="kpi-label">Payload Válido</span>
+              <span class="kpi-val">{{ schemaResponsePayloadGlobalTotals.valid }}</span>
+              <span class="kpi-tag">{{ schemaResponsePayloadGlobalTotals.validPct }}% Cumple Schema</span>
+            </div>
+            <div class="schema-kpi none">
+              <span class="kpi-label">Payload Inválido</span>
+              <span class="kpi-val">{{ schemaResponsePayloadGlobalTotals.invalid }}</span>
+              <span class="kpi-tag">{{ schemaResponsePayloadGlobalTotals.invalidPct }}% Falla / Leak</span>
+            </div>
+            <div class="schema-kpi sev-critical-kpi">
+              <span class="kpi-label">Critical (5)</span>
+              <span class="kpi-val">{{ schemaResponsePayloadGlobalTotals.severities[5] }}</span>
+              <span class="kpi-tag">Data Leak / Crítico</span>
+            </div>
+          </div>
+
+          <div class="schema-layout">
+            <!-- Chart Stacked by Operation -->
+            <div class="chart-wrapper">
+              <v-chart class="echart" :option="schemaResponsePayloadChartOption" autoresize />
+            </div>
+
+            <!-- Operations Breakdown List -->
+            <div class="schema-ops-list">
+              <div v-if="Object.keys(socketStore.metrics.schemaResponsePayloadByOperation).length === 0"
+                class="empty-schema">
+                Esperando eventos schema-response:payload...
+              </div>
+              <div v-else v-for="(data, opId) in socketStore.metrics.schemaResponsePayloadByOperation" :key="opId"
+                class="schema-op-card">
+                <div class="schema-op-header">
+                  <span class="schema-op-title" :title="opId">{{ opId }}</span>
+                  <span class="schema-op-total">{{ data.total }} respuestas</span>
+                </div>
+
+                <!-- Progress bar for valid/invalid ratio -->
+                <div class="probe-progress-bar">
+                  <div class="probe-bar-valid"
+                    :style="{ width: (data.total > 0 ? (data.valid / data.total * 100) : 0) + '%' }" title="Válidos">
+                  </div>
+                  <div class="probe-bar-invalid"
+                    :style="{ width: (data.total > 0 ? (data.invalid / data.total * 100) : 0) + '%' }"
+                    title="Inválidos"></div>
+                </div>
+
+                <!-- Severity Level Counters -->
+                <div class="schema-badges-row">
+                  <span class="schema-badge badge-exact" title="Válidos">
+                    ✅ Válidos: {{ data.valid }}
+                  </span>
+                  <span class="schema-badge badge-none" title="Inválidos">
+                    ❌ Inválidos: {{ data.invalid }}
+                  </span>
+                  <span v-if="data.bySeverityLevel[5]" class="schema-badge badge-critical"
+                    title="Severidad 5: CRITICAL">
+                    🟣 Critical: {{ data.bySeverityLevel[5] }}
+                  </span>
+                  <span v-if="data.bySeverityLevel[4]" class="schema-badge badge-none" title="Severidad 4: HIGH">
+                    🔴 High: {{ data.bySeverityLevel[4] }}
+                  </span>
+                  <span v-if="data.bySeverityLevel[3]" class="schema-badge badge-5xx" title="Severidad 3: MEDIUM">
+                    🟠 Medium: {{ data.bySeverityLevel[3] }}
+                  </span>
+                </div>
+
+                <!-- Finding Types breakdown list -->
+                <div class="findings-types-list" v-if="Object.keys(data.byType).length > 0">
+                  <span class="config-title">Hallazgos Registrados:</span>
+                  <div class="finding-type-items">
+                    <div v-for="(count, typeName) in data.byType" :key="typeName" class="finding-type-item">
+                      <span :class="'schema-badge ' + findingTypeBadgeClass(typeName)">
+                        {{ typeName }}
+                      </span>
+                      <span class="finding-type-count font-mono">{{ count }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -716,6 +802,102 @@ const schemaProbeChartOption = computed(() => {
     series
   };
 });
+
+// Schema Response Payload Validity Totals
+const schemaResponsePayloadGlobalTotals = computed(() => {
+  const byOp = socketStore.metrics.schemaResponsePayloadByOperation || {};
+  let total = 0;
+  let valid = 0;
+  let invalid = 0;
+  const severities = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+  Object.values(byOp).forEach(opData => {
+    total += opData.total || 0;
+    valid += opData.valid || 0;
+    invalid += opData.invalid || 0;
+    const bsl = opData.bySeverityLevel || {};
+    severities[1] += bsl[1] || 0;
+    severities[2] += bsl[2] || 0;
+    severities[3] += bsl[3] || 0;
+    severities[4] += bsl[4] || 0;
+    severities[5] += bsl[5] || 0;
+  });
+
+  const validPct = total > 0 ? Math.round((valid / total) * 100) : 0;
+  const invalidPct = total > 0 ? Math.round((invalid / total) * 100) : 0;
+
+  return { total, valid, invalid, validPct, invalidPct, severities };
+});
+
+// Schema Response Payload Chart Option (Stacked Bar by Operation)
+const schemaResponsePayloadChartOption = computed(() => {
+  const byOp = socketStore.metrics.schemaResponsePayloadByOperation || {};
+  const operations = Object.keys(byOp);
+
+  if (operations.length === 0) {
+    return {
+      title: { text: 'Sin datos aún', textStyle: { color: '#a0a0b0' }, left: 'center', top: 'middle' }
+    };
+  }
+
+  // Sort operations ascending by total responses
+  operations.sort((a, b) => (byOp[a].total || 0) - (byOp[b].total || 0));
+
+  const levels = [
+    { key: 1, name: 'INFO', color: '#94a3b8' },
+    { key: 2, name: 'LOW', color: '#fbbf24' },
+    { key: 3, name: 'MEDIUM', color: '#fb923c' },
+    { key: 4, name: 'HIGH', color: '#f87171' },
+    { key: 5, name: 'CRITICAL', color: '#c084fc' }
+  ];
+
+  const series = levels.map(l => ({
+    name: l.name,
+    type: 'bar',
+    stack: 'payloadSeverity',
+    itemStyle: { color: l.color },
+    data: operations.map(op => byOp[op]?.bySeverityLevel[l.key] || 0)
+  }));
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(28, 28, 40, 0.9)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      textStyle: { color: '#f0f0f5' }
+    },
+    legend: {
+      data: levels.map(l => l.name),
+      textStyle: { color: '#a0a0b0' },
+      top: 0
+    },
+    grid: { left: '3%', right: '4%', top: 40, bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: operations,
+      axisLabel: { color: '#a0a0b0' }
+    },
+    series
+  };
+});
+
+const findingTypeBadgeClass = (typeName) => {
+  const map = {
+    'SCHEMA_VALIDATION_SUCCESS': 'badge-exact',
+    'EMPTY_RESPONSE_VALID': 'badge-exact',
+    'UNREADABLE_RESPONSE_PAYLOAD': 'badge-default',
+    'MISSING_RESPONSE_BODY': 'badge-5xx',
+    'SCHEMA_VALIDATION_ERROR': 'badge-none',
+    'UNDOCUMENTED_DATA_LEAK': 'badge-critical'
+  };
+  return map[typeName] || 'badge-wildcard';
+};
 </script>
 
 <style scoped>
@@ -1509,6 +1691,53 @@ const schemaProbeChartOption = computed(() => {
 .probe-bar-invalid {
   background: #f87171;
   transition: width 0.3s ease;
+}
+
+/* Schema Response Payload Section */
+.schema-response-payload-section {
+  margin-top: 24px;
+}
+
+.schema-kpi.total-payload {
+  border-left: 4px solid #c084fc;
+}
+
+.schema-kpi.sev-critical-kpi {
+  border-left: 4px solid #e879f9;
+}
+
+.badge-critical {
+  background: rgba(192, 132, 252, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
+.findings-types-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.finding-type-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.finding-type-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.finding-type-count {
+  font-size: 11px;
+  color: var(--accent-primary);
+  font-weight: bold;
 }
 
 /* Responsive adjustments */
