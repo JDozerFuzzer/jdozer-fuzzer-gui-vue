@@ -13,6 +13,12 @@
         </button>
       </div>
 
+      <!-- Remote Target API Component -->
+      <TargetApiCard 
+        :fuzzerInfo="socketStore.targetApi.info" 
+        :operationsInfo="socketStore.targetApi.operations" 
+      />
+
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <GlassCard>
@@ -452,6 +458,7 @@
 import { computed } from 'vue'
 import AppLayout from '../components/layout/AppLayout.vue'
 import GlassCard from '../components/ui/GlassCard.vue'
+import TargetApiCard from '../components/ui/TargetApiCard.vue'
 import { useSocketStore } from '../store/socketStore'
 import VChart from 'vue-echarts'
 

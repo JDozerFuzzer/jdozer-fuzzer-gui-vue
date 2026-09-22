@@ -6,6 +6,10 @@ export const useSocketStore = defineStore('socket', {
     socket: null,
     isConnected: false,
     eventsLog: [],
+    targetApi: {
+      info: null,
+      operations: []
+    },
     metrics: {
       totalCasesCreated: 0,
       casesByOperation: {}, // format: { 'addPet': 25, 'updatePet': 10 }
@@ -66,6 +70,12 @@ export const useSocketStore = defineStore('socket', {
 
           // Procesar métricas específicas
           switch (routeKey) {
+            case 'fuzzer:created':
+              this.handleFuzzerCreated(data.payload);
+              break;
+            case 'operations:created':
+              this.handleOperationsCreated(data.payload);
+              break;
             case 'counts:total-cases':
               this.handleTotalCases(data.payload);
               break;
@@ -100,6 +110,18 @@ export const useSocketStore = defineStore('socket', {
         this.socket.disconnect()
         this.socket = null
         this.isConnected = false
+      }
+    },
+
+    handleFuzzerCreated(payload) {
+      if (payload) {
+        this.targetApi.info = payload;
+      }
+    },
+
+    handleOperationsCreated(payload) {
+      if (payload) {
+        this.targetApi.operations = payload.operations || payload;
       }
     },
 
@@ -163,7 +185,7 @@ export const useSocketStore = defineStore('socket', {
       );
 
       const updatedSchema = JSON.parse(JSON.stringify(this.metrics.schemaResponsesByOperation || {}));
-      
+
       if (!updatedSchema[operationId]) {
         updatedSchema[operationId] = {
           total: 0,
@@ -281,9 +303,9 @@ export const useSocketStore = defineStore('socket', {
       const severityLevel = payload.severityLevel !== undefined ? payload.severityLevel : 1;
       const severityName = (payload.severityName || (
         severityLevel === 1 ? 'INFO' :
-        severityLevel === 2 ? 'LOW' :
-        severityLevel === 3 ? 'MEDIUM' :
-        severityLevel === 4 ? 'HIGH' : 'CRITICAL'
+          severityLevel === 2 ? 'LOW' :
+            severityLevel === 3 ? 'MEDIUM' :
+              severityLevel === 4 ? 'HIGH' : 'CRITICAL'
       )).toUpperCase();
       const type = payload.type || 'UNKNOWN';
 
@@ -330,6 +352,10 @@ export const useSocketStore = defineStore('socket', {
 
     clearMetrics() {
       this.eventsLog = [];
+      this.targetApi = {
+        info: null,
+        operations: []
+      };
       this.metrics = {
         totalCasesCreated: 0,
         casesByOperation: {},
