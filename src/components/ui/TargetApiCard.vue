@@ -64,6 +64,12 @@
             <span class="stat-value">{{ totalOpsCount }}</span>
           </div>
 
+          <!-- Total Test Cases KPI -->
+          <div v-if="socketStore.metrics.totalCasesCreated > 0" class="summary-stat stat-cases">
+            <span class="stat-label">Casos Generados</span>
+            <span class="stat-value text-success">{{ socketStore.metrics.totalCasesCreated }}</span>
+          </div>
+
           <!-- Servers List if multiple -->
           <div v-if="normalizedFuzzer.servers && normalizedFuzzer.servers.length > 1" class="summary-servers">
             <span class="stat-label">Servidores ({{ normalizedFuzzer.servers.length }})</span>
@@ -119,17 +125,37 @@
             <!-- Operations Grid / List -->
             <div class="ops-list">
               <div v-for="op in filteredOperations" :key="op.id || op.name" class="op-item-card">
-                <div class="op-method-badge" :class="`method-${(op.method || 'GET').toLowerCase()}`">
-                  {{ (op.method || 'GET').toUpperCase() }}
+                <div class="op-item-main">
+                  <div class="op-method-badge" :class="`method-${(op.method || 'GET').toLowerCase()}`">
+                    {{ (op.method || 'GET').toUpperCase() }}
+                  </div>
+                  <div class="op-details">
+                    <div class="op-path-row">
+                      <span class="op-path font-mono">{{ op.path }}</span>
+                    </div>
+                    <div class="op-name-row">
+                      <span class="op-name">{{ op.name }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Test Cases Summary per Operation -->
+                  <div v-if="getTestCasesForOp(op)" class="op-tc-summary">
+                    <div v-if="hasBreakdown(getTestCasesForOp(op))" class="op-breakdown-list">
+                      <span v-for="(count, key) in getTestCasesForOp(op).breakdown" :key="key"
+                        :class="['breakdown-pill', getPillClass(key)]" :title="`${key}: ${count}`">
+                        <span class="pill-label">{{ formatKey(key) }}</span>
+                        <span class="pill-val">{{ count }}</span>
+                      </span>
+                    </div>
+                    <span class="op-tc-total font-mono" title="Casos de prueba generados">
+                      {{ getTestCasesForOp(op).total }} casos
+                    </span>
+                  </div>
                 </div>
-                <div class="op-details">
-                  <div class="op-path-row">
-                    <span class="op-path font-mono">{{ op.path }}</span>
-                  </div>
-                  <div class="op-name-row">
-                    <span class="op-name">{{ op.name }}</span>
-                  </div>
-                  <span v-if="op.id" class="op-id-tag font-mono">id: {{ op.id }}</span>
+
+                <!-- Operation ID at full-width bottom -->
+                <div v-if="op.id" class="op-id-footer">
+                  <span class="op-id-tag font-mono">id: {{ op.id }}</span>
                 </div>
               </div>
 
@@ -147,6 +173,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import GlassCard from './GlassCard.vue'
+import { useSocketStore } from '../../store/socketStore'
 import {
   Globe,
   Server,
@@ -155,6 +182,8 @@ import {
   RefreshCw,
   Radio
 } from 'lucide-vue-next'
+
+const socketStore = useSocketStore()
 
 const props = defineProps({
   fuzzerInfo: {
@@ -175,7 +204,7 @@ const props = defineProps({
   },
   defaultExpanded: {
     type: Boolean,
-    default: false
+    default: true
   }
 })
 
@@ -268,6 +297,56 @@ const filteredOperations = computed(() => {
     return nameMatch || pathMatch || idMatch
   })
 })
+
+const getTestCasesForOp = (op) => {
+  const detailsMap = socketStore.metrics.casesDetailsByOperation || {}
+  const simpleMap = socketStore.metrics.casesByOperation || {}
+
+  const candidates = [op.id, op.name, op.operationId].filter(Boolean)
+  let key = candidates.find(k => detailsMap[k] || simpleMap[k] !== undefined)
+
+  if (!key) {
+    const allKeys = Array.from(new Set([...Object.keys(detailsMap), ...Object.keys(simpleMap)]))
+    key = allKeys.find(k => candidates.some(c => c.toLowerCase() === k.toLowerCase()))
+  }
+
+  if (key) {
+    if (detailsMap[key]) {
+      return {
+        total: detailsMap[key].total !== undefined ? detailsMap[key].total : (simpleMap[key] || 0),
+        breakdown: detailsMap[key].breakdown || {}
+      }
+    }
+    const val = simpleMap[key]
+    return {
+      total: typeof val === 'number' ? val : (val?.total || 0),
+      breakdown: {}
+    }
+  }
+
+  return null
+}
+
+const hasBreakdown = (tcData) => {
+  return tcData && tcData.breakdown && Object.keys(tcData.breakdown).length > 0
+}
+
+const formatKey = (key) => {
+  if (key === 'grammar-based') return 'Grammar'
+  if (key === 'seeds') return 'Seeds'
+  return key
+}
+
+const getPillClass = (key) => {
+  const k = (key || '').toLowerCase()
+  if (k.includes('seed')) return 'pill-seeds'
+  if (k.includes('grammar')) return 'pill-grammar'
+  if (k.includes('header')) return 'pill-headers'
+  if (k.includes('query')) return 'pill-query'
+  if (k.includes('path')) return 'pill-path'
+  if (k.includes('form') || k.includes('body')) return 'pill-body'
+  return 'pill-default'
+}
 </script>
 
 <style scoped>
@@ -693,13 +772,28 @@ const filteredOperations = computed(() => {
 
 .op-item-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px 14px;
   transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.op-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.op-id-footer {
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
 }
 
 .op-item-card:hover {
@@ -754,8 +848,10 @@ const filteredOperations = computed(() => {
 }
 
 .op-id-tag {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-muted);
+  letter-spacing: 0.02em;
+  word-break: break-all;
 }
 
 .no-ops-found {
@@ -774,8 +870,100 @@ const filteredOperations = computed(() => {
   color: var(--accent-primary);
 }
 
+.text-success {
+  color: #4ade80;
+}
+
 .text-muted {
   color: var(--text-muted);
+}
+
+/* Test Cases per Operation */
+.op-tc-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.op-breakdown-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+.breakdown-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+}
+
+.pill-label {
+  opacity: 0.8;
+}
+
+.pill-val {
+  font-weight: 700;
+}
+
+.pill-seeds {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.pill-grammar {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.pill-headers {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.pill-query {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.25);
+}
+
+.pill-path {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+}
+
+.pill-body {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.25);
+}
+
+.pill-default {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.op-tc-total {
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Transitions */

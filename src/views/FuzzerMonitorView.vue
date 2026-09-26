@@ -21,19 +21,6 @@
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <GlassCard>
-          <div class="kpi-content cases-card">
-            <span class="kpi-label">Casos Generados Totales</span>
-            <span class="kpi-value">{{ socketStore.metrics.totalCasesCreated }}</span>
-
-            <div class="op-cases-list" v-if="Object.keys(socketStore.metrics.casesByOperation).length > 0">
-              <div class="op-case-item" v-for="(count, op) in socketStore.metrics.casesByOperation" :key="op">
-                <span class="op-name" :title="op">{{ op }}</span>
-                <span class="op-count">{{ count }}</span>
-              </div>
-            </div>
-          </div>
-        </GlassCard>
 
         <GlassCard>
           <div class="kpi-content cases-card">

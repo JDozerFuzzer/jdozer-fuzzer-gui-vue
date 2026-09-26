@@ -13,6 +13,7 @@ export const useSocketStore = defineStore('socket', {
     metrics: {
       totalCasesCreated: 0,
       casesByOperation: {}, // format: { 'addPet': 25, 'updatePet': 10 }
+      casesDetailsByOperation: {}, // format: { 'addPet': { total: 31, breakdown: { 'seeds': 26, 'grammar-based': 5 } } }
       engineConfig: null, // Guardará la config del ataque (phases, scenarios)
       totalResponses: 0,
       statusCodesByOperation: {}, // format: { 'addPet': { 200: 5, 400: 2, 500: 1 } }
@@ -76,7 +77,7 @@ export const useSocketStore = defineStore('socket', {
             case 'operations:created':
               this.handleOperationsCreated(data.payload);
               break;
-            case 'counts:total-cases':
+            case 'test-cases:summary':
               this.handleTotalCases(data.payload);
               break;
             case 'fuzzer-engine:engine-started':
@@ -126,26 +127,53 @@ export const useSocketStore = defineStore('socket', {
     },
 
     handleTotalCases(payload) {
-      if (payload && payload.total !== undefined) {
-        this.metrics.totalCasesCreated = payload.total;
+      if (!payload) return;
 
-        const perOps = payload.perOperations || payload;
-        const casesByOp = {};
-
-        for (const [op, props] of Object.entries(perOps)) {
-          if (op === 'total') continue;
-          if (typeof props === 'object' && props !== null) {
-            let opTotal = 0;
-            for (const val of Object.values(props)) {
-              opTotal += Number(val) || 0;
-            }
-            casesByOp[op] = opTotal;
-          } else if (typeof props === 'number') {
-            casesByOp[op] = props;
-          }
-        }
-        this.metrics.casesByOperation = casesByOp;
+      if (payload.total !== undefined) {
+        this.metrics.totalCasesCreated = Number(payload.total) || 0;
       }
+
+      const perOps = payload.perOperations || payload;
+      const casesByOp = {};
+      const casesDetailsByOp = {};
+
+      for (const [op, props] of Object.entries(perOps)) {
+        if (op === 'total' || op === 'id') continue;
+
+        if (typeof props === 'object' && props !== null) {
+          let opTotal = props.total !== undefined ? Number(props.total) : 0;
+          let breakdown = {};
+
+          if (props.payload && typeof props.payload === 'object') {
+            breakdown = { ...props.payload };
+          } else {
+            for (const [k, v] of Object.entries(props)) {
+              if (k !== 'total' && k !== 'id' && typeof v === 'number') {
+                breakdown[k] = v;
+              }
+            }
+          }
+
+          if (opTotal === 0 && Object.keys(breakdown).length > 0) {
+            opTotal = Object.values(breakdown).reduce((sum, val) => sum + (Number(val) || 0), 0);
+          }
+
+          casesByOp[op] = opTotal;
+          casesDetailsByOp[op] = {
+            total: opTotal,
+            breakdown
+          };
+        } else if (typeof props === 'number') {
+          casesByOp[op] = props;
+          casesDetailsByOp[op] = {
+            total: props,
+            breakdown: {}
+          };
+        }
+      }
+
+      this.metrics.casesByOperation = casesByOp;
+      this.metrics.casesDetailsByOperation = casesDetailsByOp;
     },
 
     handleEngineStarted(payload) {
@@ -359,6 +387,7 @@ export const useSocketStore = defineStore('socket', {
       this.metrics = {
         totalCasesCreated: 0,
         casesByOperation: {},
+        casesDetailsByOperation: {},
         engineConfig: null,
         totalResponses: 0,
         statusCodesByOperation: {},
