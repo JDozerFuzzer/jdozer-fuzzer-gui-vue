@@ -15,6 +15,7 @@ export const useSocketStore = defineStore('socket', {
       casesByOperation: {}, // format: { 'addPet': 25, 'updatePet': 10 }
       casesDetailsByOperation: {}, // format: { 'addPet': { total: 31, breakdown: { 'seeds': 26, 'grammar-based': 5 } } }
       engineConfig: null, // Guardará la config del ataque (phases, scenarios)
+      attackSurface: null, // Guardará la superficie de ataque ({ fuzzerId, surfaces: [...] })
       totalResponses: 0,
       statusCodesByOperation: {}, // format: { 'addPet': { 200: 5, 400: 2, 500: 1 } }
       schemaResponsesByOperation: {}, // format: { 'createUser': { total: 10, byMatchType: {...}, bySeverityName: {...}, byStatusCode: {...} } }
@@ -82,9 +83,14 @@ export const useSocketStore = defineStore('socket', {
               break;
             case 'fuzzer-engine:engine-started':
             case 'fuzzer-engine:config':
+            case 'engine:configurated':
               this.handleEngineStarted(data.payload);
               break;
+            case 'configuration:attack-surface':
+              this.handleAttackSurface(data.payload);
+              break;
             case 'schema-response:status-code':
+            case 'contract-drift:status-code':
               this.handleStatusCode(data.payload);
               break;
             case 'fuzzing-case:validation':
@@ -94,9 +100,11 @@ export const useSocketStore = defineStore('socket', {
               this.handleFalsePositive(data.payload);
               break;
             case 'schema-probe:payload':
+            case 'request:payload':
               this.handleSchemaProbe(data.payload);
               break;
             case 'schema-response:payload':
+            case 'response:payload':
               this.handleSchemaResponsePayload(data.payload);
               break;
           }
@@ -182,6 +190,12 @@ export const useSocketStore = defineStore('socket', {
           phases: payload.phases || [],
           scenarios: payload.scenarios || {}
         };
+      }
+    },
+
+    handleAttackSurface(payload) {
+      if (payload) {
+        this.metrics.attackSurface = payload;
       }
     },
 
@@ -389,6 +403,7 @@ export const useSocketStore = defineStore('socket', {
         casesByOperation: {},
         casesDetailsByOperation: {},
         engineConfig: null,
+        attackSurface: null,
         totalResponses: 0,
         statusCodesByOperation: {},
         schemaResponsesByOperation: {},

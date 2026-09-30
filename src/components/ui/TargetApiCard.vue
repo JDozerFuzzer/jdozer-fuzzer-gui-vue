@@ -98,33 +98,9 @@
         <!-- Operations Section (Collapsible / Expandable) -->
         <transition name="fade-slide">
           <div v-if="isExpanded && operationsList.length > 0" class="operations-container">
-            <!-- Search & Filters Toolbar -->
-            <div class="ops-toolbar">
-              <div class="search-input-wrapper">
-                <Search class="search-icon icon-xs" />
-                <input type="text" v-model="searchQuery" placeholder="Buscar por ruta (/pet), nombre o ID..."
-                  class="ops-search-input" />
-                <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search-btn">
-                  &times;
-                </button>
-              </div>
-
-              <div class="ops-filter-pills">
-                <button :class="['filter-pill', { active: selectedMethodFilter === 'ALL' }]"
-                  @click="selectedMethodFilter = 'ALL'">
-                  Todos ({{ operationsList.length }})
-                </button>
-                <button v-for="(count, method) in methodBreakdown" :key="'flt-' + method"
-                  :class="['filter-pill', `method-${method.toLowerCase()}`, { active: selectedMethodFilter === method }]"
-                  @click="selectedMethodFilter = method">
-                  {{ method }} ({{ count }})
-                </button>
-              </div>
-            </div>
-
             <!-- Operations Grid / List -->
             <div class="ops-list">
-              <div v-for="op in filteredOperations" :key="op.id || op.name" class="op-item-card">
+              <div v-for="op in filteredOperations" :key="op.id || op.name || op.path" class="op-item-card">
                 <div class="op-item-main">
                   <div class="op-method-badge" :class="`method-${(op.method || 'GET').toLowerCase()}`">
                     {{ (op.method || 'GET').toUpperCase() }}
@@ -133,23 +109,9 @@
                     <div class="op-path-row">
                       <span class="op-path font-mono">{{ op.path }}</span>
                     </div>
-                    <div class="op-name-row">
+                    <div v-if="op.name" class="op-name-row">
                       <span class="op-name">{{ op.name }}</span>
                     </div>
-                  </div>
-
-                  <!-- Test Cases Summary per Operation -->
-                  <div v-if="getTestCasesForOp(op)" class="op-tc-summary">
-                    <div v-if="hasBreakdown(getTestCasesForOp(op))" class="op-breakdown-list">
-                      <span v-for="(count, key) in getTestCasesForOp(op).breakdown" :key="key"
-                        :class="['breakdown-pill', getPillClass(key)]" :title="`${key}: ${count}`">
-                        <span class="pill-label">{{ formatKey(key) }}</span>
-                        <span class="pill-val">{{ count }}</span>
-                      </span>
-                    </div>
-                    <span class="op-tc-total font-mono" title="Casos de prueba generados">
-                      {{ getTestCasesForOp(op).total }} casos
-                    </span>
                   </div>
                 </div>
 
@@ -160,7 +122,7 @@
               </div>
 
               <div v-if="filteredOperations.length === 0" class="no-ops-found">
-                No se encontraron operaciones con los filtros aplicados.
+                No se encontraron operaciones con el filtro aplicado.
               </div>
             </div>
           </div>
@@ -178,7 +140,6 @@ import {
   Globe,
   Server,
   ChevronDown,
-  Search,
   RefreshCw,
   Radio
 } from 'lucide-vue-next'
@@ -204,12 +165,11 @@ const props = defineProps({
   },
   defaultExpanded: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
 const isExpanded = ref(props.defaultExpanded)
-const searchQuery = ref('')
 const selectedMethodFilter = ref('ALL')
 
 // Normalize Fuzzer payload (unwraps event wrappers like { payload: { ... } } or raw objects)
@@ -279,74 +239,14 @@ const toggleMethodFilter = (method) => {
   }
 }
 
-// Filtered operations list based on search and method filter
+// Filtered operations list based on method filter
 const filteredOperations = computed(() => {
+  if (selectedMethodFilter.value === 'ALL') return operationsList.value
   return operationsList.value.filter(op => {
     const method = (op.method || '').toUpperCase()
-    const matchesMethod = selectedMethodFilter.value === 'ALL' || method === selectedMethodFilter.value
-
-    if (!matchesMethod) return false
-
-    if (!searchQuery.value.trim()) return true
-
-    const query = searchQuery.value.toLowerCase()
-    const nameMatch = (op.name || '').toLowerCase().includes(query)
-    const pathMatch = (op.path || '').toLowerCase().includes(query)
-    const idMatch = (op.id || '').toLowerCase().includes(query)
-
-    return nameMatch || pathMatch || idMatch
+    return method === selectedMethodFilter.value
   })
 })
-
-const getTestCasesForOp = (op) => {
-  const detailsMap = socketStore.metrics.casesDetailsByOperation || {}
-  const simpleMap = socketStore.metrics.casesByOperation || {}
-
-  const candidates = [op.id, op.name, op.operationId].filter(Boolean)
-  let key = candidates.find(k => detailsMap[k] || simpleMap[k] !== undefined)
-
-  if (!key) {
-    const allKeys = Array.from(new Set([...Object.keys(detailsMap), ...Object.keys(simpleMap)]))
-    key = allKeys.find(k => candidates.some(c => c.toLowerCase() === k.toLowerCase()))
-  }
-
-  if (key) {
-    if (detailsMap[key]) {
-      return {
-        total: detailsMap[key].total !== undefined ? detailsMap[key].total : (simpleMap[key] || 0),
-        breakdown: detailsMap[key].breakdown || {}
-      }
-    }
-    const val = simpleMap[key]
-    return {
-      total: typeof val === 'number' ? val : (val?.total || 0),
-      breakdown: {}
-    }
-  }
-
-  return null
-}
-
-const hasBreakdown = (tcData) => {
-  return tcData && tcData.breakdown && Object.keys(tcData.breakdown).length > 0
-}
-
-const formatKey = (key) => {
-  if (key === 'grammar-based') return 'Grammar'
-  if (key === 'seeds') return 'Seeds'
-  return key
-}
-
-const getPillClass = (key) => {
-  const k = (key || '').toLowerCase()
-  if (k.includes('seed')) return 'pill-seeds'
-  if (k.includes('grammar')) return 'pill-grammar'
-  if (k.includes('header')) return 'pill-headers'
-  if (k.includes('query')) return 'pill-query'
-  if (k.includes('path')) return 'pill-path'
-  if (k.includes('form') || k.includes('body')) return 'pill-body'
-  return 'pill-default'
-}
 </script>
 
 <style scoped>
@@ -680,91 +580,11 @@ const getPillClass = (key) => {
   border-color: rgba(148, 163, 184, 0.3);
 }
 
-/* Toolbar & Filter Bar */
-.ops-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 240px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  color: var(--text-muted);
-}
-
-.ops-search-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 30px 8px 32px;
-  color: var(--text-primary);
-  font-size: 13px;
-  outline: none;
-  transition: border-color var(--transition-fast);
-}
-
-.ops-search-input:focus {
-  border-color: var(--accent-secondary);
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.ops-filter-pills {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.filter-pill {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.filter-pill:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.filter-pill.active {
-  background: var(--accent-secondary);
-  color: #000;
-  font-weight: 600;
-  border-color: var(--accent-secondary);
-}
-
 /* Operations Grid */
 .ops-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
   max-height: 420px;
   overflow-y: auto;
   padding-right: 4px;
@@ -773,32 +593,24 @@ const getPillClass = (key) => {
 .op-item-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.op-item-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.op-id-footer {
-  width: 100%;
-  padding-top: 4px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
 }
 
 .op-item-card:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+.op-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .op-method-badge {
@@ -847,6 +659,14 @@ const getPillClass = (key) => {
   text-overflow: ellipsis;
 }
 
+.op-id-footer {
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+}
+
 .op-id-tag {
   font-size: 10.5px;
   color: var(--text-muted);
@@ -876,94 +696,6 @@ const getPillClass = (key) => {
 
 .text-muted {
   color: var(--text-muted);
-}
-
-/* Test Cases per Operation */
-.op-tc-summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.op-breakdown-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
-  margin-right: 10px;
-}
-
-.breakdown-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: var(--font-mono, monospace);
-}
-
-.pill-label {
-  opacity: 0.8;
-}
-
-.pill-val {
-  font-weight: 700;
-}
-
-.pill-seeds {
-  background: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-.pill-grammar {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.25);
-}
-
-.pill-headers {
-  background: rgba(234, 179, 8, 0.15);
-  color: #fde047;
-  border: 1px solid rgba(234, 179, 8, 0.25);
-}
-
-.pill-query {
-  background: rgba(20, 184, 166, 0.15);
-  color: #2dd4bf;
-  border: 1px solid rgba(20, 184, 166, 0.25);
-}
-
-.pill-path {
-  background: rgba(249, 115, 22, 0.15);
-  color: #fdba74;
-  border: 1px solid rgba(249, 115, 22, 0.25);
-}
-
-.pill-body {
-  background: rgba(236, 72, 153, 0.15);
-  color: #f472b6;
-  border: 1px solid rgba(236, 72, 153, 0.25);
-}
-
-.pill-default {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.op-tc-total {
-  font-weight: 700;
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.12);
-  border: 1px solid rgba(74, 222, 128, 0.25);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 /* Transitions */
