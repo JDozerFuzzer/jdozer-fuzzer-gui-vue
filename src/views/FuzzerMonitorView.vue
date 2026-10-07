@@ -66,7 +66,8 @@
       </div>
 
 
-      <!-- Validity Matrix Chart -->
+      <!--
+      <!-- Validity Matrix Chart 
       <div class="validity-section">
         <GlassCard title="Análisis de Validez: Request vs Response">
           <div class="validity-grid">
@@ -98,12 +99,13 @@
           </div>
         </GlassCard>
       </div>
+      -->
 
-      <!-- False Positive / Penetration Levels -->
+      <!-- False Positive / Penetration Levels 
       <div class="fp-section">
         <GlassCard title="Niveles de Penetración (False Positives)">
           <div class="fp-layout">
-            <!-- Level Counters -->
+            <!-- Level Counters 
             <div class="fp-levels">
               <div class="fp-level-card high">
                 <span class="fp-level-icon">🔴</span>
@@ -127,13 +129,13 @@
               </div>
             </div>
 
-            <!-- Chart by Operation -->
+            <!-- Chart by Operation 
             <div class="chart-wrapper">
               <v-chart class="echart" :option="fpChartOption" autoresize />
             </div>
           </div>
 
-          <!-- Recent Events -->
+          <!-- Recent Events 
           <div class="fp-recent" v-if="socketStore.metrics.falsePositives.recent.length > 0">
             <span class="config-title">Últimos Eventos</span>
             <div class="fp-recent-list">
@@ -148,6 +150,7 @@
           </div>
         </GlassCard>
       </div>
+    -->
     </div>
   </AppLayout>
 </template>
