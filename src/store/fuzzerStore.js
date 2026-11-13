@@ -63,10 +63,19 @@ export const useFuzzerStore = defineStore('fuzzer', {
       }
     },
 
-    async fetchOperationRequests(fuzzerId, operationId) {
-      if (!fuzzerId || !operationId) return [];
+    async fetchOperationRequests(fuzzerId, operationId, index = 1, length = 10) {
+      if (!fuzzerId || !operationId) return null;
       try {
-        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/requests`);
+        let pageIndex = index;
+        let pageLength = length;
+        if (typeof index === 'object' && index !== null) {
+          pageIndex = index.index ?? index.page ?? 1;
+          pageLength = index.length ?? index.limit ?? 10;
+        }
+
+        const response = await fetch(
+          `http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/summaries?length=${pageLength}&index=${pageIndex}`
+        );
         if (!response.ok) throw new Error('Error al obtener solicitudes de la operación');
         const data = await response.json();
         return data;
@@ -79,13 +88,74 @@ export const useFuzzerStore = defineStore('fuzzer', {
     async fetchCaseDetails(fuzzerId, operationId, caseId) {
       if (!fuzzerId || !operationId || !caseId) return null;
       try {
+        const res = await this.fetchTestCaseSummary(fuzzerId, operationId, caseId);
+        if (res) return res;
         const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/case/${caseId}`);
-        if (!response.ok) throw new Error('Error al obtener detalle del caso de prueba');
-        const data = await response.json();
-        return data;
+        if (!response.ok) return null;
+        return await response.json();
       } catch (err) {
-        console.error('Error fetching case details:', err);
-        throw err;
+        console.warn('Could not fetch case details:', err);
+        return null;
+      }
+    },
+
+    async fetchTestCaseSummary(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/test-case-summary`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching test-case-summary:', err);
+        return null;
+      }
+    },
+
+    async fetchStatusCodeDrift(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/status-code-drift`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching status-code-drift:', err);
+        return null;
+      }
+    },
+
+    async fetchMutationPayload(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/mutation-payload`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching mutation-payload:', err);
+        return null;
+      }
+    },
+
+    async fetchTestCaseExecution(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/execution`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching execution:', err);
+        return null;
+      }
+    },
+
+    async fetchVector(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/vector`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching vector:', err);
+        return null;
       }
     },
 

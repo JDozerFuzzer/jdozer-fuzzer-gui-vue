@@ -1,9 +1,9 @@
 <template>
   <aside class="sidebar glass-panel">
     <div class="sidebar-header">
-      <img src="/JDozerFuzzer2.png" alt="JDozerFuzzer" class="logo-img" />
+      <img src="/JDozerFuzzer3.png" alt="JDozerFuzzer" class="logo-img" />
     </div>
-    
+
     <nav class="sidebar-nav">
       <router-link to="/" class="nav-item">
         <LayoutDashboard class="icon" />

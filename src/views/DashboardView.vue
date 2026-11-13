@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="dashboard">
-      
+
       <!-- Fuzzer Selector Row -->
       <div class="selector-row">
         <GlassCard>
@@ -15,19 +15,13 @@
             </div>
 
             <div class="selector-controls">
-              <select 
-                id="fuzzer-select" 
-                v-model="fuzzerStore.selectedFuzzerId" 
-                class="glass-select"
-              >
+              <select id="fuzzer-select" v-model="fuzzerStore.selectedFuzzerId" class="glass-select">
                 <option v-if="fuzzerStore.loading" value="" disabled>Cargando fuzzers...</option>
-                <option v-else-if="fuzzerStore.fuzzers.length === 0" value="" disabled>No hay fuzzers disponibles</option>
-                <option 
-                  v-for="fuzzer in fuzzerStore.fuzzers" 
-                  :key="fuzzer.id" 
-                  :value="fuzzer.id"
-                >
-                  {{ fuzzer.name || 'Fuzzer sin nombre' }} (v{{ fuzzer.version || '1.0' }}) — {{ fuzzer.id.substring(0, 8) }}...
+                <option v-else-if="fuzzerStore.fuzzers.length === 0" value="" disabled>No hay fuzzers disponibles
+                </option>
+                <option v-for="fuzzer in fuzzerStore.fuzzers" :key="fuzzer.id" :value="fuzzer.id">
+                  {{ fuzzer.name || 'Fuzzer sin nombre' }} (v{{ fuzzer.version || '1.0' }}) — {{ fuzzer.id.substring(0,
+                    8) }}...
                 </option>
               </select>
 
@@ -56,11 +50,8 @@
               </div>
 
               <!-- Button to view remote API contract via Swagger UI -->
-              <button 
-                @click="showSwaggerModal = true" 
-                class="btn-swagger-contract" 
-                title="Ver contrato original de la API remota (Swagger UI)"
-              >
+              <button @click="showSwaggerModal = true" class="btn-swagger-contract"
+                title="Ver contrato original de la API remota (Swagger UI)">
                 <FileText class="icon-sm" />
                 <span>Ver Contrato API (Swagger)</span>
               </button>
@@ -79,15 +70,11 @@
 
             <!-- Lista de Operaciones -->
             <div v-if="selectedFuzzer.operationIds && selectedFuzzer.operationIds.length > 0" class="summary-section">
-              <span class="summary-section-title">Operaciones ({{ selectedFuzzer.operationIds.length }}) — Haz clic para ver solicitudes</span>
+              <span class="summary-section-title">Operaciones ({{ selectedFuzzer.operationIds.length }}) — Haz clic para
+                ver solicitudes</span>
               <div class="operations-tags">
-                <span 
-                  v-for="opId in selectedFuzzer.operationIds" 
-                  :key="opId" 
-                  class="op-tag"
-                  :class="{ 'active': selectedOperationId === opId }"
-                  @click="selectOperation(opId)"
-                >
+                <span v-for="opId in selectedFuzzer.operationIds" :key="opId" class="op-tag"
+                  :class="{ 'active': selectedOperationId === opId }" @click="selectOperation(opId)">
                   {{ opId }}
                 </span>
               </div>
@@ -98,411 +85,24 @@
 
       <!-- Operation Requests Grid Row -->
       <div v-if="selectedOperationId" class="operation-requests-row">
-        <GlassCard>
-          <div class="card-header-flex">
-            <div class="header-title-group">
-              <span class="grid-title">Solicitudes / Respuestas — Operación: <code class="op-code">{{ selectedOperationId }}</code></span>
-              <span class="grid-count-badge" v-if="operationRequests.length > 0">{{ operationRequests.length }} Registros</span>
-            </div>
-            <button @click="clearSelectedOperation" class="btn-close-grid" title="Cerrar grilla">
-              <X class="icon-sm" />
-            </button>
-          </div>
-
-          <!-- Loading State -->
-          <div v-if="loadingRequests" class="loading-state">
-            <RefreshCw class="spinning icon-md text-accent" />
-            <span>Cargando solicitudes de <strong>{{ selectedOperationId }}</strong>...</span>
-          </div>
-
-          <!-- Error State -->
-          <div v-else-if="requestsError" class="error-state">
-            <span>{{ requestsError }}</span>
-          </div>
-
-          <!-- Empty State -->
-          <div v-else-if="operationRequests.length === 0" class="empty-state">
-            <span>No se encontraron solicitudes registradas para la operación <strong>{{ selectedOperationId }}</strong>.</span>
-          </div>
-
-          <!-- Data Grid / Table -->
-          <div v-else class="table-container">
-            <table class="data-table requests-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Petición (REQ)</th>
-                  <th>Respuesta (RES)</th>
-                  <th>Validación Esquema</th>
-                  <th>Vector (VEC)</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in operationRequests" :key="index">
-                  <td class="index-col">{{ index + 1 }}</td>
-
-                  <!-- REQ -->
-                  <td>
-                    <div class="req-cell">
-                      <span :class="['method-badge', item.REQ?.method?.toLowerCase()]">
-                        {{ item.REQ?.method || 'REQ' }}
-                      </span>
-                      <span class="url-path" :title="item.REQ?.url || item.REQ?.path">
-                        {{ item.REQ?.path || item.REQ?.url }}
-                      </span>
-                    </div>
-                  </td>
-
-                  <!-- RES -->
-                  <td>
-                    <div class="res-cell" v-if="item.RES">
-                      <span :class="['status-badge-res', getStatusClass(item.RES.statusCode)]">
-                        {{ item.RES.statusCode }} {{ item.RES.statusMessage }}
-                      </span>
-                      <span class="time-latency" v-if="item.RES.totalTime !== undefined">
-                        ⚡ {{ item.RES.totalTime }}ms
-                      </span>
-                    </div>
-                    <span v-else class="text-muted">Sin respuesta</span>
-                  </td>
-
-                  <!-- Schema Validations -->
-                  <td>
-                    <div class="schema-validations-cell">
-                      <!-- Request Payload Schema -->
-                      <div v-if="item.schemaRequestPayload" class="val-item">
-                        <span class="val-label">Req Payload:</span>
-                        <span :class="['val-badge', item.schemaRequestPayload.isValid ? 'valid' : 'invalid']">
-                          {{ item.schemaRequestPayload.isValid ? '✓ Válido' : '✗ Inválido' }}
-                        </span>
-                        <span v-if="item.schemaRequestPayload.type" class="val-type-tag">
-                          {{ item.schemaRequestPayload.type }}
-                        </span>
-                      </div>
-
-                      <!-- Response Payload Schema -->
-                      <div v-if="item.schemaResponsePayload" class="val-item">
-                        <span class="val-label">Res Payload:</span>
-                        <span :class="['val-badge', item.schemaResponsePayload.isValid ? 'valid' : 'invalid']">
-                          {{ item.schemaResponsePayload.isValid ? '✓ Válido' : '✗ Inválido' }}
-                        </span>
-                      </div>
-
-                      <!-- Response Status Code Schema -->
-                      <div v-if="item.schemaResponseStatusCode" class="val-item">
-                        <span class="val-label">Status Code:</span>
-                        <span class="val-badge info">
-                          Match: {{ item.schemaResponseStatusCode.matchType || 'N/A' }}
-                        </span>
-                      </div>
-
-                      <!-- Fuzzing Case -->
-                      <div v-if="item.fuzzingCase" class="val-item">
-                        <span class="val-label">Fuzzing Case:</span>
-                        <span :class="['val-badge', item.fuzzingCase.isValidRequest ? 'valid' : 'invalid']">
-                          {{ item.fuzzingCase.isValidRequest ? '✓ Req Válida' : '✗ Req Inválida' }}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- Vector VEC -->
-                  <td>
-                    <div v-if="item.VEC" class="vec-cell">
-                      <div class="vec-header">
-                        <span class="vec-badge-type">{{ item.VEC.type || 'Vector' }}</span>
-                        <span v-if="item.VEC.insertion" class="vec-badge-insertion">Inyectado</span>
-                      </div>
-                      <div class="vec-owasp" v-if="item.VEC.owasp">{{ item.VEC.owasp }}</div>
-                      <div class="vec-cat" v-if="item.VEC.category">{{ item.VEC.category }}</div>
-                    </div>
-                    <div v-else class="no-vec">
-                      <span class="text-muted">Sin vector</span>
-                    </div>
-                  </td>
-
-                  <!-- Action / Inspector -->
-                  <td>
-                    <button @click="openCaseDetails(item)" class="btn-action btn-inspect">
-                      <Info class="icon-xs" />
-                      Detalles
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </GlassCard>
+        <OperationRequestsCard
+          :fuzzer-id="fuzzerStore.selectedFuzzerId"
+          :operation-id="selectedOperationId"
+          @close="clearSelectedOperation"
+          @inspect="openCaseDetails"
+        />
       </div>
 
-      <!-- Case Details Modal -->
-      <div v-if="showCaseModal" class="modal-backdrop" @click.self="closeCaseModal">
-        <div class="modal-card case-modal-card">
-          
-          <!-- Header -->
-          <div class="modal-header">
-            <div class="modal-title-group">
-              <h3>Detalle del Caso de Prueba</h3>
-              <div class="modal-sub-info">
-                <span class="op-badge-modal">{{ selectedOperationId }}</span>
-                <span class="case-id-modal">ID: {{ activeCaseId }}</span>
-              </div>
-            </div>
-            <button @click="closeCaseModal" class="btn-close-modal">
-              <X class="icon-sm" />
-            </button>
-          </div>
-
-          <!-- Loading Indicator -->
-          <div v-if="loadingCaseDetails" class="loading-state modal-loading">
-            <RefreshCw class="spinning icon-md text-accent" />
-            <span>Obteniendo detalles completos del caso...</span>
-          </div>
-
-          <!-- Content when Loaded -->
-          <template v-else-if="caseDetails">
-            
-            <!-- Navigation Tabs -->
-            <div class="modal-tabs">
-              <button 
-                :class="['tab-btn', { active: caseModalTab === 'findings' }]" 
-                @click="caseModalTab = 'findings'"
-              >
-                🔍 Evaluación & Hallazgos
-              </button>
-
-              <button 
-                :class="['tab-btn', { active: caseModalTab === 'vector' }]" 
-                @click="caseModalTab = 'vector'"
-              >
-                ⚡ Vector de Inyección
-              </button>
-
-              <button 
-                :class="['tab-btn', { active: caseModalTab === 'http' }]" 
-                @click="caseModalTab = 'http'"
-              >
-                🌐 HTTP (Req / Res)
-              </button>
-
-              <button 
-                :class="['tab-btn', { active: caseModalTab === 'openapi' }]" 
-                @click="caseModalTab = 'openapi'"
-              >
-                📜 Contrato OpenAPI
-              </button>
-
-              <button 
-                :class="['tab-btn', { active: caseModalTab === 'raw' }]" 
-                @click="caseModalTab = 'raw'"
-              >
-                { } JSON Raw
-              </button>
-            </div>
-
-            <!-- Tab 1: Evaluación y Hallazgos -->
-            <div v-if="caseModalTab === 'findings'" class="modal-tab-content">
-              
-              <!-- Schema Request Payload Finding -->
-              <div v-if="caseDetails.schemaRequestPayload?.finding" class="finding-card danger">
-                <div class="finding-header">
-                  <span class="finding-title">
-                    Payload de Petición vs Esquema
-                  </span>
-                  <span :class="['severity-badge', 'sev-' + caseDetails.schemaRequestPayload.finding.severity]">
-                    Severidad {{ caseDetails.schemaRequestPayload.finding.severity }}
-                  </span>
-                </div>
-                <div class="finding-body">
-                  <p class="finding-desc">{{ caseDetails.schemaRequestPayload.finding.description }}</p>
-                  <div class="finding-tags" v-if="caseDetails.schemaRequestPayload.finding.tags">
-                    <span v-for="tag in caseDetails.schemaRequestPayload.finding.tags" :key="tag" class="tag-pill">
-                      #{{ tag }}
-                    </span>
-                  </div>
-                  <div v-if="caseDetails.schemaRequestPayload.finding.recommendation" class="finding-recommendation">
-                    <strong>💡 Recomendación:</strong> {{ caseDetails.schemaRequestPayload.finding.recommendation }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Schema Response StatusCode -->
-              <div v-if="caseDetails.schemaResponseStatusCode" class="finding-card warning">
-                <div class="finding-header">
-                  <span class="finding-title">
-                    Código de Estado HTTP (Status Code)
-                  </span>
-                  <span :class="['severity-badge', 'sev-' + caseDetails.schemaResponseStatusCode.severity]">
-                    Severidad {{ caseDetails.schemaResponseStatusCode.severity }}
-                  </span>
-                </div>
-                <div class="finding-body">
-                  <div class="status-match-info">
-                    <span>Código Recibido: <strong>{{ caseDetails.schemaResponseStatusCode.statusCode }}</strong></span>
-                    <span>Tipo Match: <strong>{{ caseDetails.schemaResponseStatusCode.matchType }}</strong></span>
-                  </div>
-                  <p class="finding-desc">{{ caseDetails.schemaResponseStatusCode.description }}</p>
-                  <div class="finding-tags" v-if="caseDetails.schemaResponseStatusCode.tags">
-                    <span v-for="tag in caseDetails.schemaResponseStatusCode.tags" :key="tag" class="tag-pill">
-                      #{{ tag }}
-                    </span>
-                  </div>
-                  <div v-if="caseDetails.schemaResponseStatusCode.recommendation" class="finding-recommendation">
-                    <strong>💡 Recomendación:</strong> {{ caseDetails.schemaResponseStatusCode.recommendation }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Schema Response Payload -->
-              <div v-if="caseDetails.schemaResponsePayload?.validation" class="finding-card info">
-                <div class="finding-header">
-                  <span class="finding-title">
-                    Payload de Respuesta vs Esquema
-                  </span>
-                  <span class="severity-badge sev-level">
-                    Nivel: {{ caseDetails.schemaResponsePayload.validation.SEVERITY_LEVEL }}
-                  </span>
-                </div>
-                <div class="finding-body">
-                  <p class="finding-desc">{{ caseDetails.schemaResponsePayload.validation.DESCRIPTION }}</p>
-                  <div class="finding-tags" v-if="caseDetails.schemaResponsePayload.validation.TAGS">
-                    <span v-for="tag in caseDetails.schemaResponsePayload.validation.TAGS" :key="tag" class="tag-pill">
-                      #{{ tag }}
-                    </span>
-                  </div>
-                  <div v-if="caseDetails.schemaResponsePayload.validation.RECOMMENDATION" class="finding-recommendation">
-                    <strong>💡 Recomendaciones:</strong>
-                    <ul>
-                      <li v-for="(rec, rIdx) in caseDetails.schemaResponsePayload.validation.RECOMMENDATION" :key="rIdx">
-                        {{ rec }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fallback if no specific finding cards -->
-              <div v-if="!caseDetails.schemaRequestPayload?.finding && !caseDetails.schemaResponseStatusCode && !caseDetails.schemaResponsePayload?.validation" class="empty-state">
-                No se registraron alertas de severidad adicionales para este caso.
-              </div>
-            </div>
-
-            <!-- Tab 2: Vector de Inyección -->
-            <div v-if="caseModalTab === 'vector'" class="modal-tab-content">
-              <div v-if="caseDetails.VEC?.vectorApplied || caseDetails.VEC?.type" class="vector-detail-card">
-                <div class="vec-summary-grid">
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Tipo de Vector:</span>
-                    <span class="vec-prop-val text-danger font-bold">{{ caseDetails.VEC.vectorApplied?.type || caseDetails.VEC.type }}</span>
-                  </div>
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Categoría OWASP:</span>
-                    <span class="vec-prop-val">{{ caseDetails.VEC.vectorApplied?.owasp_category || caseDetails.VEC.owasp }}</span>
-                  </div>
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Subcategoría:</span>
-                    <span class="vec-prop-val">{{ caseDetails.VEC.vectorApplied?.subcategory || caseDetails.VEC.category }}</span>
-                  </div>
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Técnica:</span>
-                    <span class="vec-prop-val">{{ caseDetails.VEC.vectorApplied?.technique || 'N/A' }}</span>
-                  </div>
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Contexto:</span>
-                    <span class="vec-prop-val">{{ caseDetails.VEC.vectorApplied?.context || 'N/A' }}</span>
-                  </div>
-                  <div class="vec-prop">
-                    <span class="vec-prop-key">Inyectado:</span>
-                    <span class="vec-prop-val badge-inserted">{{ caseDetails.VEC.insertion ? 'Sí' : 'No' }}</span>
-                  </div>
-                </div>
-
-                <div v-if="caseDetails.VEC.vectorApplied?.description" class="vec-desc-box">
-                  <strong>Descripción del ataque:</strong> {{ caseDetails.VEC.vectorApplied.description }}
-                </div>
-
-                <div v-if="caseDetails.VEC.vectorApplied?.script" class="vec-script-box">
-                  <strong>Payload / Script del Vector:</strong>
-                  <pre class="json-code"><code>{{ decodePayload(caseDetails.VEC.vectorApplied.script) }}</code></pre>
-                </div>
-              </div>
-
-              <div v-else class="empty-state">
-                <span>No se aplicó vector de inyección en este caso de prueba.</span>
-              </div>
-            </div>
-
-            <!-- Tab 3: HTTP Petición & Respuesta -->
-            <div v-if="caseModalTab === 'http'" class="modal-tab-content http-split-view">
-              
-              <!-- Request Box -->
-              <div class="http-card">
-                <div class="http-card-title">
-                  <span>🚀 Petición (REQ)</span>
-                  <span :class="['method-badge', caseDetails.REQ?.method?.toLowerCase()]">{{ caseDetails.REQ?.method }}</span>
-                </div>
-                <div class="http-card-body">
-                  <div class="kv-item"><strong>URL:</strong> <span class="font-mono">{{ caseDetails.REQ?.url }}</span></div>
-                  <div class="kv-item"><strong>Path:</strong> <span class="font-mono">{{ caseDetails.REQ?.path || caseDetails.REQ?.defaultName }}</span></div>
-                  
-                  <div class="code-sub-title">Headers:</div>
-                  <pre class="json-code compact"><code>{{ JSON.stringify(caseDetails.REQ?.headers, null, 2) }}</code></pre>
-
-                  <div class="code-sub-title">Body / Payload:</div>
-                  <pre class="json-code compact"><code>{{ decodePayload(caseDetails.REQ?.body || caseDetails.REQ?.payload) }}</code></pre>
-                </div>
-              </div>
-
-              <!-- Response Box -->
-              <div class="http-card">
-                <div class="http-card-title">
-                  <span>📥 Respuesta (RES)</span>
-                  <span :class="['status-badge-res', getStatusClass(caseDetails.RES?.statusCode)]">
-                    {{ caseDetails.RES?.statusCode }} {{ caseDetails.RES?.statusMessage }}
-                  </span>
-                </div>
-                <div class="http-card-body">
-                  <div class="kv-item"><strong>Tiempo Total:</strong> ⚡ {{ caseDetails.RES?.timings?.phases?.total || caseDetails.RES?.totalTime || 0 }}ms</div>
-                  
-                  <div class="code-sub-title">Headers:</div>
-                  <pre class="json-code compact"><code>{{ JSON.stringify(caseDetails.RES?.headers, null, 2) }}</code></pre>
-
-                  <div class="code-sub-title">Response Payload:</div>
-                  <pre class="json-code compact"><code>{{ decodePayload(caseDetails.RES?.payload) }}</code></pre>
-                </div>
-              </div>
-            </div>
-
-            <!-- Tab 4: Especificación OpenAPI (Contrato) -->
-            <div v-if="caseModalTab === 'openapi'" class="modal-tab-content">
-              <div v-if="operationSpec" class="openapi-spec-card">
-                <div class="spec-header">
-                  <span class="spec-method">{{ operationSpec.method?.toUpperCase() }}</span>
-                  <span class="spec-path">{{ operationSpec.path }}</span>
-                  <span class="spec-name">({{ operationSpec.name }})</span>
-                </div>
-
-                <div class="code-sub-title">Esquema de Payload Petición (Req Schema):</div>
-                <pre class="json-code"><code>{{ JSON.stringify(operationSpec.req?.payload, null, 2) }}</code></pre>
-
-                <div class="code-sub-title">Respuestas Definidas en Contrato (Res Schemas):</div>
-                <pre class="json-code"><code>{{ JSON.stringify(operationSpec.res, null, 2) }}</code></pre>
-              </div>
-
-              <div v-else class="empty-state">
-                <span>No se encontró especificación del contrato para esta operación.</span>
-              </div>
-            </div>
-
-            <!-- Tab 5: JSON Raw -->
-            <div v-if="caseModalTab === 'raw'" class="modal-tab-content">
-              <pre class="json-code"><code>{{ JSON.stringify(caseDetails, null, 2) }}</code></pre>
-            </div>
-          </template>
-
-        </div>
-      </div>
+      <!-- Case Details Modal (Modular Fuzz Component) -->
+      <FuzzCaseModal
+        :show="showCaseModal"
+        :fuzzer-id="fuzzerStore.selectedFuzzerId"
+        :operation-id="selectedOperationId"
+        :case-id="activeCaseId"
+        :case-item="activeCaseItem"
+        :operation-spec="operationSpec"
+        @close="closeCaseModal"
+      />
 
       <!-- Top Stats Row -->
       <div class="stats-grid">
@@ -573,11 +173,8 @@
                 </tr>
               </thead>
               <tbody>
-                <tr 
-                  v-for="fuzzer in fuzzerStore.fuzzers" 
-                  :key="fuzzer.id"
-                  :class="{ 'selected-row': fuzzer.id === fuzzerStore.selectedFuzzerId }"
-                >
+                <tr v-for="fuzzer in fuzzerStore.fuzzers" :key="fuzzer.id"
+                  :class="{ 'selected-row': fuzzer.id === fuzzerStore.selectedFuzzerId }">
                   <td class="font-bold">{{ fuzzer.name }}</td>
                   <td><span class="badge-version">v{{ fuzzer.version }}</span></td>
                   <td class="font-mono">{{ fuzzer.id }}</td>
@@ -597,12 +194,8 @@
       </div>
 
       <!-- Swagger UI Contract Modal -->
-      <SwaggerModal 
-        :show="showSwaggerModal" 
-        :fuzzer-id="fuzzerStore.selectedFuzzerId" 
-        :fuzzer-name="selectedFuzzer?.name" 
-        @close="showSwaggerModal = false" 
-      />
+      <SwaggerModal :show="showSwaggerModal" :fuzzer-id="fuzzerStore.selectedFuzzerId"
+        :fuzzer-name="selectedFuzzer?.name" @close="showSwaggerModal = false" />
     </div>
   </AppLayout>
 </template>
@@ -613,6 +206,8 @@ import { ShieldCheck, Activity, AlertTriangle, Layers, RefreshCw, X, Info, FileT
 import AppLayout from '../components/layout/AppLayout.vue'
 import GlassCard from '../components/ui/GlassCard.vue'
 import SwaggerModal from '../components/ui/SwaggerModal.vue'
+import OperationRequestsCard from '../components/ui/OperationRequestsCard.vue'
+import FuzzCaseModal from '../components/ui/fuzz/FuzzCaseModal.vue'
 import { useFuzzerStore } from '../store/fuzzerStore'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -636,20 +231,15 @@ use([
 const fuzzerStore = useFuzzerStore()
 
 const selectedOperationId = ref(null)
-const operationRequests = ref([])
-const loadingRequests = ref(false)
-const requestsError = ref(null)
 
 // Swagger Contract Modal state
 const showSwaggerModal = ref(false)
 
 // Case Details Modal state
 const showCaseModal = ref(false)
-const caseModalTab = ref('findings')
-const loadingCaseDetails = ref(false)
-const caseDetails = ref(null)
-const operationSpec = ref(null)
 const activeCaseId = ref(null)
+const activeCaseItem = ref(null)
+const operationSpec = ref(null)
 
 onMounted(() => {
   fuzzerStore.fetchFuzzers()
@@ -657,29 +247,14 @@ onMounted(() => {
 
 watch(() => fuzzerStore.selectedFuzzerId, () => {
   selectedOperationId.value = null
-  operationRequests.value = []
 })
 
 const selectedFuzzer = computed(() => {
   return fuzzerStore.fuzzers.find(f => f.id === fuzzerStore.selectedFuzzerId) || null
 })
 
-const selectOperation = async (opId) => {
+const selectOperation = (opId) => {
   selectedOperationId.value = opId
-  loadingRequests.value = true
-  requestsError.value = null
-  operationRequests.value = []
-
-  try {
-    const fuzzerId = fuzzerStore.selectedFuzzerId
-    if (!fuzzerId) return
-    const data = await fuzzerStore.fetchOperationRequests(fuzzerId, opId)
-    operationRequests.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    requestsError.value = err.message || 'Error al cargar las solicitudes'
-  } finally {
-    loadingRequests.value = false
-  }
 }
 
 const openCaseDetails = async (item) => {
@@ -687,56 +262,29 @@ const openCaseDetails = async (item) => {
   if (!caseId) return
 
   activeCaseId.value = caseId
+  activeCaseItem.value = item
   showCaseModal.value = true
-  caseModalTab.value = 'findings'
-  loadingCaseDetails.value = true
-  caseDetails.value = null
-  operationSpec.value = null
 
   try {
     const fuzzerId = fuzzerStore.selectedFuzzerId
     const opId = selectedOperationId.value
-
-    const [details, spec] = await Promise.all([
-      fuzzerStore.fetchCaseDetails(fuzzerId, opId, caseId),
-      fuzzerStore.fetchOperationSpec(fuzzerId, opId)
-    ])
-
-    caseDetails.value = details || item
-    operationSpec.value = spec
+    if (fuzzerId && opId) {
+      operationSpec.value = await fuzzerStore.fetchOperationSpec(fuzzerId, opId)
+    }
   } catch (err) {
-    console.error('Error loading case modal details:', err)
-    caseDetails.value = item
-  } finally {
-    loadingCaseDetails.value = false
+    console.warn('Could not fetch operation spec for modal:', err)
   }
 }
 
 const closeCaseModal = () => {
   showCaseModal.value = false
   activeCaseId.value = null
-  caseDetails.value = null
+  activeCaseItem.value = null
   operationSpec.value = null
-}
-
-const decodePayload = (payload) => {
-  if (!payload) return ''
-  if (typeof payload === 'object') return JSON.stringify(payload, null, 2)
-  try {
-    const decoded = atob(payload)
-    try {
-      return JSON.stringify(JSON.parse(decoded), null, 2)
-    } catch {
-      return decoded
-    }
-  } catch {
-    return payload
-  }
 }
 
 const clearSelectedOperation = () => {
   selectedOperationId.value = null
-  operationRequests.value = []
 }
 
 const getStatusClass = (code) => {
@@ -921,8 +469,13 @@ const chartOption = computed(() => ({
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .selected-fuzzer-summary {
@@ -1217,7 +770,9 @@ const chartOption = computed(() => ({
   background: rgba(255, 255, 255, 0.1);
 }
 
-.loading-state, .empty-state, .error-state {
+.loading-state,
+.empty-state,
+.error-state {
   padding: 40px;
   text-align: center;
   color: var(--text-secondary);
@@ -1286,7 +841,8 @@ const chartOption = computed(() => ({
   font-weight: 600;
 }
 
-.btn-close-grid, .btn-close-modal {
+.btn-close-grid,
+.btn-close-modal {
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -1298,7 +854,8 @@ const chartOption = computed(() => ({
   transition: all var(--transition-fast);
 }
 
-.btn-close-grid:hover, .btn-close-modal:hover {
+.btn-close-grid:hover,
+.btn-close-modal:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.1);
 }
@@ -1328,11 +885,30 @@ const chartOption = computed(() => ({
   font-family: monospace;
 }
 
-.method-badge.post { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
-.method-badge.get { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
-.method-badge.put { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.method-badge.delete { background: rgba(248, 113, 113, 0.2); color: #f87171; }
-.method-badge.patch { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+.method-badge.post {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+}
+
+.method-badge.get {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.method-badge.put {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.method-badge.delete {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.method-badge.patch {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
 
 .url-path {
   font-family: monospace;
@@ -1358,10 +934,25 @@ const chartOption = computed(() => ({
   width: fit-content;
 }
 
-.status-badge-res.success-2xx { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-.status-badge-res.redirect-3xx { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.status-badge-res.client-4xx { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
-.status-badge-res.server-5xx { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+.status-badge-res.success-2xx {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.status-badge-res.redirect-3xx {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.status-badge-res.client-4xx {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+}
+
+.status-badge-res.server-5xx {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
 
 .time-latency {
   font-size: 11px;
@@ -1392,9 +983,20 @@ const chartOption = computed(() => ({
   border-radius: 4px;
 }
 
-.val-badge.valid { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-.val-badge.invalid { background: rgba(248, 113, 113, 0.2); color: #f87171; }
-.val-badge.info { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+.val-badge.valid {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.val-badge.invalid {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.val-badge.info {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
 
 .val-type-tag {
   font-family: monospace;
@@ -1619,7 +1221,8 @@ const chartOption = computed(() => ({
   text-transform: uppercase;
 }
 
-.severity-badge.sev-4, .severity-badge.sev-5 {
+.severity-badge.sev-4,
+.severity-badge.sev-5 {
   background: rgba(248, 113, 113, 0.25);
   color: #f87171;
 }
@@ -1629,7 +1232,9 @@ const chartOption = computed(() => ({
   color: #fb923c;
 }
 
-.severity-badge.sev-1, .severity-badge.sev-2, .severity-badge.sev-level {
+.severity-badge.sev-1,
+.severity-badge.sev-2,
+.severity-badge.sev-level {
   background: rgba(251, 191, 36, 0.25);
   color: #fbbf24;
 }
