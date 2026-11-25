@@ -143,21 +143,49 @@ export const getMatchTypeInfo = (matchType) => {
  * Human-readable translations for ResponseFindingType in TestCaseSummary & PayloadCheck.
  */
 export const responseFindingTypeDefinitions = {
+  SCHEMA_VALIDATION_ERROR: {
+    label: 'Error de Validación de Esquema',
+    description: 'El cuerpo de la respuesta viola las restricciones estructurales o de tipo del JSON Schema.'
+  },
+  UNDOCUMENTED_DATA_LEAK: {
+    label: 'Fuga de Datos No Documentada',
+    description: 'La respuesta contenía propiedades o datos adicionales no permitidos ni declarados en el contrato (posible exposición de información).'
+  },
+  MISSING_REQUIRED_FIELD: {
+    label: 'Campo Requerido Faltante',
+    description: 'Falta un campo declarado como obligatorio en el esquema de respuesta del contrato.'
+  },
+  TYPE_MISMATCH: {
+    label: 'Discrepancia de Tipo',
+    description: 'El tipo de dato de una propiedad en la respuesta no coincide con el tipo esperado en el esquema.'
+  },
+  ENUM_VIOLATION: {
+    label: 'Violación de Enumeración',
+    description: 'El valor recibido en la respuesta no pertenece al conjunto de valores permitidos en el enum.'
+  },
+  FORMAT_VIOLATION: {
+    label: 'Violación de Formato',
+    description: 'El valor viola el formato especificado en el contrato (date-time, email, uri, uuid, etc.).'
+  },
+  STATUS_CODE_MISMATCH: {
+    label: 'Código de Estado No Coincidente',
+    description: 'El código HTTP de la respuesta no coincide con los contemplados para este payload.'
+  },
+  CONTENT_TYPE_MISMATCH: {
+    label: 'Content-Type No Coincidente',
+    description: 'La cabecera Content-Type de la respuesta no coincide con el tipo MIME especificado en el contrato.'
+  },
+  UNEXPECTED_EMPTY_BODY: {
+    label: 'Cuerpo Vacío Inesperado',
+    description: 'Se esperaba un cuerpo de respuesta según el contrato, pero se recibió una respuesta vacía.'
+  },
   MISSING_RESPONSE_BODY: {
     label: 'Cuerpo de Respuesta Ausente',
     description: 'La respuesta HTTP recibida no contenía cuerpo (body vacío no documentado).'
   },
-  UNDOCUMENTED_DATA_LEAK: {
-    label: 'Fuga de Datos No Documentada',
-    description: 'La respuesta contenía propiedades o datos adicionales no permitidos ni declarados en el contrato.'
-  },
   EMPTY_RESPONSE_VALID: {
     label: 'Cuerpo Vacío Válido',
     description: 'El cuerpo de respuesta vacío está explícitamente permitido según el contrato OpenAPI.'
-  },
-  SCHEMA_VALIDATION_ERROR: {
-    label: 'Error de Validación de Esquema',
-    description: 'El cuerpo de la respuesta viola las restricciones estructurales o de tipo del JSON Schema.'
   },
   SCHEMA_VALIDATION_SUCCESS: {
     label: 'Validación de Esquema Exitosa',

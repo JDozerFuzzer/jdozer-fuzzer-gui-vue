@@ -242,8 +242,8 @@
           </div>
 
           <div class="oracle-footer">
-            <button class="btn-drilldown" @click="$emit('select-tab', 'execution')">
-              <span>Ver Respuesta HTTP</span>
+            <button class="btn-drilldown" @click="$emit('select-tab', 'payload-check')">
+              <span>Examinar Validación</span>
               <ArrowRight class="icon-xs" />
             </button>
           </div>

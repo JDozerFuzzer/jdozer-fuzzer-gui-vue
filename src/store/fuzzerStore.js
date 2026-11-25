@@ -159,6 +159,18 @@ export const useFuzzerStore = defineStore('fuzzer', {
       }
     },
 
+    async fetchPayloadCheck(fuzzerId, operationId, caseId) {
+      if (!fuzzerId || !operationId || !caseId) return null;
+      try {
+        const response = await fetch(`http://localhost:3000/jdozerfuzzer/fuzzers/${fuzzerId}/operations/${operationId}/test-case/${caseId}/payload-check`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (err) {
+        console.error('Error fetching payload-check:', err);
+        return null;
+      }
+    },
+
     async fetchOperationSpec(fuzzerId, operationId) {
       if (!fuzzerId || !operationId) return null;
       try {

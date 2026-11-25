@@ -41,7 +41,21 @@
           📊 Resumen Ejecutivo
         </button>
 
-        <!-- Tab 2: Vector de Inyección (vector-api.yaml) -->
+        <!-- Tab 2: Validación de Respuesta (responsePayloadCheck.yaml) -->
+        <button
+          :class="['tab-btn', { active: activeTab === 'payload-check' }]"
+          @click="activeTab = 'payload-check'"
+        >
+          📥 Validación de Respuesta
+          <span v-if="responseCheckBadgeText" :class="['tab-mini-pill', responseCheckBadgeClass]">
+            {{ responseCheckBadgeText }}
+          </span>
+          <span v-else-if="responseCheckErrorsCount > 0" class="tab-counter-badge">
+            {{ responseCheckErrorsCount }}
+          </span>
+        </button>
+
+        <!-- Tab 3: Vector de Inyección (vector-api.yaml) -->
         <button
           :class="['tab-btn', { active: activeTab === 'vector' }]"
           @click="activeTab = 'vector'"
@@ -50,7 +64,7 @@
           <span v-if="hasVectorApplied" class="tab-pill-dot text-danger">●</span>
         </button>
 
-        <!-- Tab 3: Mutaciones de Payload (mutationPayload-api.yaml) -->
+        <!-- Tab 4: Mutaciones de Payload (mutationPayload-api.yaml) -->
         <button
           :class="['tab-btn', { active: activeTab === 'mutations' }]"
           @click="activeTab = 'mutations'"
@@ -61,7 +75,7 @@
           </span>
         </button>
 
-        <!-- Tab 4: Desviación Status Code (statuCodeDrift-api.yaml) -->
+        <!-- Tab 5: Desviación Status Code (statuCodeDrift-api.yaml) -->
         <button
           :class="['tab-btn', { active: activeTab === 'drift' }]"
           @click="activeTab = 'drift'"
@@ -72,7 +86,7 @@
           </span>
         </button>
 
-        <!-- Tab 5: Ejecución HTTP Req/Res (execution-api.yaml) -->
+        <!-- Tab 6: Ejecución HTTP Req/Res (execution-api.yaml) -->
         <button
           :class="['tab-btn', { active: activeTab === 'execution' }]"
           @click="activeTab = 'execution'"
@@ -80,7 +94,7 @@
           🌐 Ejecución HTTP
         </button>
 
-        <!-- Tab 6: Contrato OpenAPI -->
+        <!-- Tab 7: Contrato OpenAPI -->
         <button
           :class="['tab-btn', { active: activeTab === 'openapi' }]"
           @click="activeTab = 'openapi'"
@@ -88,7 +102,7 @@
           📜 Contrato OpenAPI
         </button>
 
-        <!-- Tab 7: JSON Raw -->
+        <!-- Tab 8: JSON Raw -->
         <button
           :class="['tab-btn', { active: activeTab === 'raw' }]"
           @click="activeTab = 'raw'"
@@ -116,7 +130,15 @@
             />
           </div>
 
-          <!-- TAB 2: Injection Vector -->
+          <!-- TAB 2: Response Payload Check (responsePayloadCheck.yaml) -->
+          <div v-show="activeTab === 'payload-check'" class="tab-pane">
+            <FuzzResponsePayloadCheck
+              :payload-check-data="effectivePayloadCheck"
+              :loading="loadingPayloadCheck"
+            />
+          </div>
+
+          <!-- TAB 3: Injection Vector -->
           <div v-show="activeTab === 'vector'" class="tab-pane">
             <FuzzVector
               :vector-data="effectiveVector"
@@ -124,7 +146,7 @@
             />
           </div>
 
-          <!-- TAB 3: Mutation Payload -->
+          <!-- TAB 4: Mutation Payload -->
           <div v-show="activeTab === 'mutations'" class="tab-pane">
             <FuzzMutationPayload
               :mutation-data="effectiveMutation"
@@ -132,7 +154,7 @@
             />
           </div>
 
-          <!-- TAB 4: Status Code Drift -->
+          <!-- TAB 5: Status Code Drift -->
           <div v-show="activeTab === 'drift'" class="tab-pane">
             <FuzzStatusCodeDrift
               :drift-data="effectiveDrift"
@@ -140,7 +162,7 @@
             />
           </div>
 
-          <!-- TAB 5: Raw Execution (HTTP Req/Res) -->
+          <!-- TAB 6: Raw Execution (HTTP Req/Res) -->
           <div v-show="activeTab === 'execution'" class="tab-pane">
             <FuzzExecution
               :execution-data="effectiveExecution"
@@ -212,6 +234,7 @@ import { copyToClipboard } from './fuzzUtils'
 
 // Subcomponents for each OpenAPI contract
 import FuzzTestCaseSummary from './FuzzTestCaseSummary.vue'
+import FuzzResponsePayloadCheck from './FuzzResponsePayloadCheck.vue'
 import FuzzStatusCodeDrift from './FuzzStatusCodeDrift.vue'
 import FuzzMutationPayload from './FuzzMutationPayload.vue'
 import FuzzExecution from './FuzzExecution.vue'
@@ -255,12 +278,14 @@ const copiedRaw = ref(false)
 // State for fetched drill-downs
 const loadingInitial = ref(false)
 const loadingSummary = ref(false)
+const loadingPayloadCheck = ref(false)
 const loadingVector = ref(false)
 const loadingMutation = ref(false)
 const loadingDrift = ref(false)
 const loadingExecution = ref(false)
 
 const fetchedSummary = ref(null)
+const fetchedPayloadCheck = ref(null)
 const fetchedVector = ref(null)
 const fetchedMutation = ref(null)
 const fetchedDrift = ref(null)
@@ -271,6 +296,7 @@ const loadingAny = computed(() => {
   return (
     loadingInitial.value ||
     loadingSummary.value ||
+    loadingPayloadCheck.value ||
     loadingVector.value ||
     loadingMutation.value ||
     loadingDrift.value ||
@@ -395,6 +421,45 @@ const effectiveExecution = computed(() => {
   return null
 })
 
+const effectivePayloadCheck = computed(() => {
+  if (fetchedPayloadCheck.value && Object.keys(fetchedPayloadCheck.value).length > 0) {
+    return fetchedPayloadCheck.value
+  }
+  if (props.caseItem?.responsePayloadCheck) {
+    return {
+      id: props.caseId,
+      fuzzerId: props.fuzzerId,
+      operationId: props.operationId,
+      isValid: props.caseItem.responsePayloadCheck.isValid,
+      finding: {
+        type: props.caseItem.responsePayloadCheck.findingType,
+        description: props.caseItem.responsePayloadCheck.description,
+        severity: props.caseItem.responsePayloadCheck.severity,
+        tags: props.caseItem.responsePayloadCheck.tags || [],
+        recommendation: props.caseItem.responsePayloadCheck.recommendation || []
+      },
+      errors: props.caseItem.responsePayloadCheck.errors || []
+    }
+  }
+  if (props.caseItem?.schemaResponsePayload) {
+    return {
+      id: props.caseId,
+      fuzzerId: props.fuzzerId,
+      operationId: props.operationId,
+      isValid: props.caseItem.schemaResponsePayload.isValid,
+      finding: props.caseItem.schemaResponsePayload.validation ? {
+        type: props.caseItem.schemaResponsePayload.validation.findingType || 'SCHEMA_VALIDATION_ERROR',
+        description: props.caseItem.schemaResponsePayload.validation.DESCRIPTION,
+        severity: { name: (props.caseItem.schemaResponsePayload.validation.SEVERITY_LEVEL || 'medium').toLowerCase(), value: 2 },
+        tags: props.caseItem.schemaResponsePayload.validation.TAGS || [],
+        recommendation: props.caseItem.schemaResponsePayload.validation.RECOMMENDATION || []
+      } : null,
+      errors: props.caseItem.schemaResponsePayload.errors || []
+    }
+  }
+  return null
+})
+
 const effectiveSpec = computed(() => {
   return fetchedSpec.value || props.operationSpec || null
 })
@@ -402,6 +467,27 @@ const effectiveSpec = computed(() => {
 // Tab Badges & Indicators
 const hasVectorApplied = computed(() => {
   return !!(effectiveVector.value?.vectorApplied || effectiveVector.value?.VEC)
+})
+
+const responseCheckErrorsCount = computed(() => {
+  return effectivePayloadCheck.value?.errors?.length || 0
+})
+
+const responseCheckBadgeText = computed(() => {
+  const p = effectivePayloadCheck.value
+  if (!p) return null
+  if (p.isValid === false) {
+    if (p.finding?.type === 'UNDOCUMENTED_DATA_LEAK') return 'Fuga Datos'
+    if (p.finding?.type === 'SCHEMA_VALIDATION_ERROR') return 'Error Schema'
+    return 'Discrepancia'
+  }
+  return null
+})
+
+const responseCheckBadgeClass = computed(() => {
+  const p = effectivePayloadCheck.value
+  if (p?.finding?.type === 'UNDOCUMENTED_DATA_LEAK') return 'badge-danger'
+  return 'badge-warning'
 })
 
 const mutationsCount = computed(() => {
@@ -433,6 +519,7 @@ const rawAggregateData = computed(() => ({
   fuzzerId: props.fuzzerId,
   operationId: props.operationId,
   testCaseSummary: effectiveSummary.value,
+  responsePayloadCheckOracle: effectivePayloadCheck.value,
   vectorOracle: effectiveVector.value,
   mutationPayloadOracle: effectiveMutation.value,
   statusCodeDriftOracle: effectiveDrift.value,
@@ -440,7 +527,7 @@ const rawAggregateData = computed(() => ({
   operationSpec: effectiveSpec.value
 }))
 
-// Fetching all 5 contract endpoints
+// Fetching all contract endpoints
 const loadAllContracts = async () => {
   if (!props.fuzzerId || !props.operationId || !props.caseId) return
 
@@ -458,7 +545,14 @@ const loadAllContracts = async () => {
       .catch(() => {})
       .finally(() => { loadingSummary.value = false })
 
-    // 2. Fetch Vector
+    // 2. Fetch Response Payload Check (responsePayloadCheck.yaml)
+    loadingPayloadCheck.value = true
+    fuzzerStore.fetchPayloadCheck(fId, opId, cId)
+      .then(res => { fetchedPayloadCheck.value = res })
+      .catch(() => {})
+      .finally(() => { loadingPayloadCheck.value = false })
+
+    // 3. Fetch Vector
     loadingVector.value = true
     fuzzerStore.fetchVector(fId, opId, cId)
       .then(res => { fetchedVector.value = res })
@@ -548,6 +642,7 @@ watch(
       fetchedMutation.value = null
       fetchedDrift.value = null
       fetchedExecution.value = null
+      fetchedPayloadCheck.value = null
       fetchedSpec.value = null
     }
   }

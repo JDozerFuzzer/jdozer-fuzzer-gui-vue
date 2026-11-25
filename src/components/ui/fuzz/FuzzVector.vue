@@ -11,7 +11,8 @@
       <ShieldCheck class="icon-lg text-secondary" />
       <span class="no-vec-title">Sin Vector de Inyección Aplicado</span>
       <p class="no-vec-desc">
-        Este caso de prueba no aplicó un vector de ataque de diccionario. Se ejecutó únicamente para validación de esquema y análisis de status code.
+        Este caso de prueba no aplicó un vector de ataque de diccionario. Se ejecutó únicamente para validación de
+        esquema y análisis de status code.
       </p>
     </div>
 
@@ -34,7 +35,8 @@
             <span :class="['verdict-badge', verdictInfo.badgeClass]">
               {{ verdictInfo.label }}
             </span>
-            <span v-if="resolvedFinding.severity" :class="['severity-pill', parseSeverity(resolvedFinding.severity).cssClass]">
+            <span v-if="resolvedFinding.severity"
+              :class="['severity-pill', parseSeverity(resolvedFinding.severity).cssClass]">
               Severidad {{ parseSeverity(resolvedFinding.severity).label }}
             </span>
           </div>
@@ -54,7 +56,8 @@
             <div class="confidence-fill" :style="{ width: confidencePercent + '%' }"></div>
           </div>
           <span class="confidence-disclaimer">
-            ℹ️ Confianza acotada a máx 0.70: el fuzzer no ejecuta un motor de navegador en cliente para confirmar explotación en DOM.
+            ℹ️ Confianza acotada a máx 0.70: el fuzzer no ejecuta un motor de navegador en cliente para confirmar
+            explotación en DOM.
           </span>
         </div>
       </div>
@@ -122,12 +125,11 @@
             <span class="p-k">Técnica Específica:</span>
             <span class="p-v">{{ resolvedVector.technique || 'N/A' }}</span>
           </div>
-          <div class="meta-prop full-width" v-if="resolvedVector.browser_specific && resolvedVector.browser_specific.length > 0">
+          <div class="meta-prop full-width"
+            v-if="resolvedVector.browser_specific && resolvedVector.browser_specific.length > 0">
             <span class="p-k">Navegadores Específicos:</span>
             <div class="browser-tags">
-              <span v-for="b in resolvedVector.browser_specific" :key="b" class="browser-pill">
-                {{ b }}
-              </span>
+              <span class="browser-pill">{{ resolvedVector.browser_specific }}</span>
             </div>
           </div>
         </div>
@@ -186,7 +188,8 @@
           </div>
         </div>
 
-        <pre v-if="showRawScript" class="json-code script-code base64-view"><code>{{ resolvedVector.script }}</code></pre>
+        <pre v-if="showRawScript"
+          class="json-code script-code base64-view"><code>{{ resolvedVector.script }}</code></pre>
         <pre v-else class="json-code script-code"><code>{{ decodedScript }}</code></pre>
       </div>
     </div>
@@ -389,8 +392,13 @@ const handleCopyScript = async () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .vector-content {
@@ -485,12 +493,41 @@ const handleCopyScript = async () => {
   text-transform: uppercase;
 }
 
-.verdict-potential { background: rgba(248, 113, 113, 0.25); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
-.verdict-reflected { background: rgba(251, 146, 60, 0.25); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); }
-.verdict-blocked { background: rgba(74, 222, 128, 0.25); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); }
-.verdict-no-reflection { background: rgba(96, 165, 250, 0.25); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); }
-.verdict-error { background: rgba(248, 113, 113, 0.25); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
-.verdict-inconclusive { background: rgba(148, 163, 184, 0.25); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+.verdict-potential {
+  background: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.verdict-reflected {
+  background: rgba(251, 146, 60, 0.25);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+}
+
+.verdict-blocked {
+  background: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.verdict-no-reflection {
+  background: rgba(96, 165, 250, 0.25);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.verdict-error {
+  background: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.verdict-inconclusive {
+  background: rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
 
 .verdict-desc {
   font-size: 13px;
@@ -586,10 +623,25 @@ const handleCopyScript = async () => {
   width: fit-content;
 }
 
-.outcome-accepted { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
-.outcome-rejected { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.outcome-error { background: rgba(248, 113, 113, 0.2); color: #f87171; }
-.outcome-unknown { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+.outcome-accepted {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.outcome-rejected {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.outcome-error {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.outcome-unknown {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
 
 .reflection-row {
   display: flex;
@@ -843,10 +895,33 @@ const handleCopyScript = async () => {
   text-transform: uppercase;
 }
 
-.sev-critical { background: rgba(248, 113, 113, 0.25); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
-.sev-high { background: rgba(251, 146, 60, 0.25); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); }
-.sev-medium { background: rgba(251, 191, 36, 0.25); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
-.sev-low { background: rgba(96, 165, 250, 0.25); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); }
-.sev-info { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
-</style>
+.sev-critical {
+  background: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
 
+.sev-high {
+  background: rgba(251, 146, 60, 0.25);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+}
+
+.sev-medium {
+  background: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.sev-low {
+  background: rgba(96, 165, 250, 0.25);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.sev-info {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+</style>
